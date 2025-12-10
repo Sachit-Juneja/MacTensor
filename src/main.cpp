@@ -22,5 +22,32 @@ int main() {
     std::cout << "\nResult C (A * B):\n";
     C.print();
 
+    // simple identity matrix to start
+    Matrix I = Matrix::identity(3);
+    std::cout << "\nIdentity Matrix (I):\n";
+    I.print();
+
+    // random matrix for noise
+    Matrix R = Matrix::random(3, 3);
+    std::cout << "\nRandom Matrix (R):\n";
+    R.print();
+
+    // testing addition
+    // effectively adding noise to identity
+    Matrix Sum = R + I;
+    std::cout << "\nSum (R + I):\n";
+    Sum.print();
+
+    // testing subtraction
+    Matrix Diff = R - I;
+    std::cout << "\nDifference (R - I):\n";
+    Diff.print();
+
+    // testing scalar multiplication
+    // making the identity matrix big
+    Matrix Scaled = I * 10.0f;
+    std::cout << "\nScaled Identity (I * 10):\n";
+    Scaled.print();
+
     return 0;
 }

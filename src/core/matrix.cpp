@@ -78,3 +78,83 @@ void Matrix::print() const {
         std::cout << "]\n";
     }
 }
+
+// identity matrix implementation
+// just ones on the diagonal, zeros everywhere else
+Matrix Matrix::identity(size_t n) {
+    Matrix m(n, n);
+    for(size_t i = 0; i < n; ++i) {
+        m(i, i) = 1.0f;
+    }
+    return m;
+}
+
+// element wise addition using apple vdsp
+// basically utilizing the simd registers to go fast
+Matrix& Matrix::add(const Matrix& other) {
+    if (rows != other.rows || cols != other.cols) {
+        throw std::invalid_argument("cant add matrices with different shapes");
+    }
+
+    // vdsp_vadd adds B + A into C
+    // confusing argument order but whatever
+    vDSP_vadd(
+        data.data(), 1,         // this is A
+        other.data.data(), 1,   // this is B
+        data.data(), 1,         // result goes back into A
+        data.size()             
+    );
+    
+    return *this;
+}
+
+// element wise subtraction
+Matrix& Matrix::subtract(const Matrix& other) {
+    if (rows != other.rows || cols != other.cols) {
+        throw std::invalid_argument("shapes dont match for subtraction");
+    }
+
+    // formula is C = A - B
+    // pass other as B, this as A
+    vDSP_vsub(
+        other.data.data(), 1,   
+        data.data(), 1,         
+        data.data(), 1,         
+        data.size()
+    );
+
+    return *this;
+}
+
+// scalar multiplication
+// nice for learning rates later
+Matrix& Matrix::scale(float scalar) {
+    vDSP_vsmul(
+        data.data(), 1,
+        &scalar,
+        data.data(), 1,
+        data.size()
+    );
+
+    return *this;
+}
+
+// operator overloads
+// these create copies cause sometimes we want A + B to be a new matrix
+Matrix Matrix::operator+(const Matrix& other) const {
+    Matrix result = *this; 
+    result.add(other);     
+    return result;
+}
+
+Matrix Matrix::operator-(const Matrix& other) const {
+    Matrix result = *this;
+    result.subtract(other);
+    return result;
+}
+
+Matrix Matrix::operator*(float scalar) const {
+    Matrix result = *this;
+    result.scale(scalar);
+    return result;
+}

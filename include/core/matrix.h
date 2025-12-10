@@ -31,6 +31,17 @@ public:
     
     // just prints the matrix so i can see if it worked
     void print() const;
+
+    // vdsp vector operations
+    // modifying in place cause copying memory is slow and expensive
+    Matrix& add(const Matrix& other);      
+    Matrix& subtract(const Matrix& other); 
+    Matrix& scale(float scalar);           
+    
+    // operator overloads so i can write A + B instead of A.add(B)
+    Matrix operator+(const Matrix& other) const;
+    Matrix operator-(const Matrix& other) const;
+    Matrix operator*(float scalar) const;
 };
 
 #endif
