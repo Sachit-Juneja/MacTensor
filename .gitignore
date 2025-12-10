@@ -1,0 +1,31 @@
+# Prerequisites
+*.d
+*.obj
+*.o
+*.a
+*.dylib
+*.so
+*.dll
+*.out
+
+# CMake Build Folders
+build/
+cmake-build-debug/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Apple Mac Junk
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code Settings (User specific)
+.vscode/
+*.code-workspace
+
+# Editors
+.idea/
+*.swp
+*~
