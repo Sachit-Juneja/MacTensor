@@ -158,3 +158,59 @@ Matrix Matrix::operator*(float scalar) const {
     result.scale(scalar);
     return result;
 }
+
+// dot product
+// basically measures how much two vectors point in the same direction
+float Matrix::dot(const Matrix& other) const {
+    if (rows != other.rows || cols != other.cols) {
+        throw std::invalid_argument("shapes must match for dot product");
+    }
+
+    float result = 0.0f;
+    
+    // vdsp_dotpr goes brrr
+    // stride is 1 cause our data is contiguous
+    vDSP_dotpr(
+        data.data(), 1, 
+        other.data.data(), 1, 
+        &result, 
+        data.size()
+    );
+
+    return result;
+}
+
+// cholesky decomposition (LL^T)
+// using lapack spotrf. this modifies the matrix in place usually
+// but we return a new L lower triangular matrix
+Matrix Matrix::cholesky() const {
+    if (rows != cols) {
+        throw std::invalid_argument("cholesky requires square matrix");
+    }
+
+    // copy current matrix cause lapack destroys the input
+    Matrix L = *this;
+
+    int n = (int)rows;
+    int lda = n;
+    int info = 0;
+    
+    // calling the lapack routine directly
+    // "L" means fill the lower triangle. 
+    // careful: lapack expects mutable pointers
+    spotrf_("L", &n, L.data.data(), &lda, &info);
+
+    if (info != 0) {
+        throw std::runtime_error("cholesky failed. matrix might not be positive definite :(");
+    }
+
+    // spotrf leaves garbage in the upper triangle, so we gotta zero it out
+    // strictly speaking we should only return the lower triangle
+    for(size_t i = 0; i < rows; ++i) {
+        for(size_t j = i + 1; j < cols; ++j) {
+            L(i, j) = 0.0f;
+        }
+    }
+
+    return L;
+}

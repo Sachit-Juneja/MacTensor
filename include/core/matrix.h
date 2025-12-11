@@ -42,6 +42,15 @@ public:
     Matrix operator+(const Matrix& other) const;
     Matrix operator-(const Matrix& other) const;
     Matrix operator*(float scalar) const;
+
+    // dot product between two matrices (treated as vectors)
+    // returns a single float scalar
+    float dot(const Matrix& other) const;
+
+    // lapack solvers
+    // decomposes matrix into L * L^T. fast way to solve linear systems
+    // ONLY works for symmetric positive definite matrices (like covariance)
+    Matrix cholesky() const;
 };
 
 #endif
