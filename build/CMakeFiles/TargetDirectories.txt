@@ -1,3 +1,0 @@
-/Users/sachit/Desktop/Python/MacTensor/build/CMakeFiles/MacTensor.dir
-/Users/sachit/Desktop/Python/MacTensor/build/CMakeFiles/edit_cache.dir
-/Users/sachit/Desktop/Python/MacTensor/build/CMakeFiles/rebuild_cache.dir
