@@ -28,7 +28,7 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 - [x] **Matrix Class Architecture**
     - [x] Implement `Matrix` class with `std::vector` storage.
     - [x] Implement **Column-Major** storage logic (required for LAPACK compatibility).
-    - [ ] Implement Strides and Views for non-contiguous memory access.
+    - [x] Implement Strides and Views for non-contiguous memory access.
 - [x] **Apple Accelerate Integration (BLAS)**
     - [x] Link `Accelerate.framework` via CMake.
     - [x] Implement `matmul` using `cblas_sgemm` (Level 3 BLAS).
