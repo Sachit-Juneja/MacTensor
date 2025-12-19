@@ -255,3 +255,51 @@ Matrix Matrix::lu() const {
 
     return Result;
 }
+
+// singular value decomposition
+// the heavy lifter for dimensionality reduction
+Matrix::SVDResult Matrix::svd() const {
+    Matrix U(rows, rows);
+    Matrix Vt(cols, cols);
+    Matrix S(std::min(rows, cols), 1); // singular values are a vector really
+
+    // lapack workspace query
+    // sgesvd requires a work array, we ask it how much memory it needs first
+    int m = (int)rows;
+    int n = (int)cols;
+    int lda = m;
+    int ldu = m;
+    int ldvt = n;
+    int info = 0;
+    float wkopt;
+    int lwork = -1; // query mode
+
+    // first call to get optimal workspace size
+    sgesvd_("A", "A", &m, &n, nullptr, &lda, nullptr, nullptr, &ldu, nullptr, &ldvt, &wkopt, &lwork, &info);
+    
+    // allocate the workspace
+    lwork = (int)wkopt;
+    std::vector<float> work(lwork);
+
+    // actual calculation
+    // "A" means return all columns of U and VT
+    // passing data copies because sgesvd destroys the input matrix
+    std::vector<float> a_copy = data;
+    
+    sgesvd_(
+        "A", "A", 
+        &m, &n, 
+        a_copy.data(), &lda, 
+        S.data.data(), 
+        U.data.data(), &ldu, 
+        Vt.data.data(), &ldvt, 
+        work.data(), &lwork, 
+        &info
+    );
+
+    if (info > 0) {
+        throw std::runtime_error("svd failed to converge");
+    }
+
+    return {U, S, Vt};
+}

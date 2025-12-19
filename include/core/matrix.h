@@ -59,6 +59,17 @@ public:
     // works on any square matrix, not just symmetric ones.
     // returns the combined result (L and U stored in one matrix)
     Matrix lu() const;
+
+    // struct to hold SVD results (U, Sigma, Vt)
+    struct SVDResult {
+        Matrix U;
+        Matrix S;  // Singular values (diagonal)
+        Matrix Vt; // V transpose
+    };
+
+    // singular value decomposition (A = U * S * Vt)
+    // used for PCA and dimensionality reduction
+    SVDResult svd() const;
 };
 
 #endif
