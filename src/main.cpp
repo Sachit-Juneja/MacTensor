@@ -60,6 +60,24 @@ void test_cholesky() {
     }
 }
 
+void test_transpose() {
+    std::cout << "\n--- Testing Transpose ---\n";
+    Matrix A(2, 3);
+    // filling with 1,2,3 / 4,5,6
+    A(0,0)=1; A(0,1)=2; A(0,2)=3;
+    A(1,0)=4; A(1,1)=5; A(1,2)=6;
+
+    Matrix T = A.transpose();
+    
+    // T should be 3x2 with 1,4 / 2,5 / 3,6
+    if (T.rows == 3 && T.cols == 2 && T(0,1) == 4.0f) {
+        std::cout << ">> [PASS] Transpose\n";
+    } else {
+        std::cerr << ">> [FAIL] Transpose logic broken\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -88,6 +106,7 @@ int main() {
     
     test_dot_product();
     test_cholesky();
+    test_transpose();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;

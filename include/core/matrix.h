@@ -51,6 +51,14 @@ public:
     // decomposes matrix into L * L^T. fast way to solve linear systems
     // ONLY works for symmetric positive definite matrices (like covariance)
     Matrix cholesky() const;
+
+    // flips rows and cols. needed for X^T * X
+    Matrix transpose() const;
+
+    // general matrix decomposition (PLU). 
+    // works on any square matrix, not just symmetric ones.
+    // returns the combined result (L and U stored in one matrix)
+    Matrix lu() const;
 };
 
 #endif

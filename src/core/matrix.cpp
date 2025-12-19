@@ -214,3 +214,44 @@ Matrix Matrix::cholesky() const {
 
     return L;
 }
+
+// simple transpose. standard O(n^2) but needed everywhere
+Matrix Matrix::transpose() const {
+    Matrix T(cols, rows); // dimensions flipped
+    for(size_t i = 0; i < rows; ++i) {
+        for(size_t j = 0; j < cols; ++j) {
+            T(j, i) = (*this)(i, j);
+        }
+    }
+    return T;
+}
+
+// LU decomposition using lapack sgetrf
+// this is the bread and butter solver for general systems
+Matrix Matrix::lu() const {
+    if (rows != cols) {
+        throw std::invalid_argument("lu decomp requires square matrix");
+    }
+
+    Matrix Result = *this; // copy data
+    
+    int n = (int)rows;
+    int lda = n;
+    int info = 0;
+    
+    // pivot indices (records row swaps)
+    // lapack needs this to solve the system later
+    std::vector<int> ipiv(n);
+
+    // calculates PLU factorization
+    // result is stored in-place:
+    // L is below diagonal (unit diagonal implied)
+    // U is above diagonal
+    sgetrf_(&n, &n, Result.data.data(), &lda, ipiv.data(), &info);
+
+    if (info != 0) {
+        throw std::runtime_error("lu decomposition failed. matrix is singular (uninvertible)");
+    }
+
+    return Result;
+}

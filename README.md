@@ -34,8 +34,8 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
     - [x] Implement `matmul` using `cblas_sgemm` (Level 3 BLAS).
     - [x] Implement vector operations using `vDSP` (Addition, Scaling, Dot Product).
 - [ ] **Linear Solvers (LAPACK)**
-    - [ ] Implement Cholesky Decomposition (`spotrf`) for symmetric positive-definite matrices.
-    - [ ] Implement LU Decomposition (`sgetrf`) for general systems.
+    - [x] Implement Cholesky Decomposition (`spotrf`) for symmetric positive-definite matrices.
+    - [x] Implement LU Decomposition (`sgetrf`) for general systems.
     - [ ] Implement Singular Value Decomposition (`sgesvd`) for dimensionality reduction.
 
 ### Phase II: Classical Supervised Learning
