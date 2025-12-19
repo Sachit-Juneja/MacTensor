@@ -98,6 +98,60 @@ void test_lu() {
     }
 }
 
+// automated test for SVD
+void test_svd() {
+    std::cout << "\n--- Testing Singular Value Decomposition (SVD) ---\n";
+    
+    // A = [[3, 2, 2], [2, 3, -2]]
+    Matrix A(2, 3);
+    A(0,0)=3; A(0,1)=2; A(0,2)=2;
+    A(1,0)=2; A(1,1)=3; A(1,2)=-2;
+
+    std::cout << "Original Matrix A:\n";
+    A.print();
+
+    try {
+        auto result = A.svd();
+        
+        std::cout << "Singular Values (Sigma):\n";
+        result.S.print();
+
+        // Verification: Reconstruct A = U * Sigma * Vt
+        // Note: S returned is a vector, need to turn it into diagonal matrix for math
+        // This is a bit manual but necessary for the test
+        Matrix SigmaMat(result.U.cols, result.Vt.rows); // correct dimensions
+        
+        // Fill SigmaMat with zeros first (manual loop since we dont have fill() yet)
+        for(size_t i=0; i<SigmaMat.rows; ++i) {
+            for(size_t j=0; j<SigmaMat.cols; ++j) SigmaMat(i,j) = 0.0f;
+        }
+
+        // Fill diagonal
+        for(size_t i=0; i<result.S.rows; ++i) {
+            SigmaMat(i, i) = result.S(i, 0);
+        }
+
+        // Reconstruction: (U * Sigma) * Vt
+        Matrix Temp = result.U.matmul(SigmaMat);
+        Matrix Reconstructed = Temp.matmul(result.Vt);
+
+        std::cout << "Reconstructed Matrix (should match A):\n";
+        Reconstructed.print();
+
+        // Check first element to be safe
+        if (close_enough(Reconstructed(0,0), 3.0f) && close_enough(Reconstructed(1,2), -2.0f)) {
+            std::cout << ">> [PASS] SVD (Reconstruction successful)\n";
+        } else {
+            std::cerr << ">> [FAIL] SVD reconstruction mismatch\n";
+            exit(1);
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << ">> [FAIL] SVD crashed: " << e.what() << "\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -128,6 +182,7 @@ int main() {
     test_cholesky();
     test_transpose();
     test_lu();
+    test_svd();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;

@@ -60,16 +60,20 @@ public:
     // returns the combined result (L and U stored in one matrix)
     Matrix lu() const;
 
-    // struct to hold SVD results (U, Sigma, Vt)
-    struct SVDResult {
-        Matrix U;
-        Matrix S;  // Singular values (diagonal)
-        Matrix Vt; // V transpose
-    };
+    // --- FIX IS HERE ---
+    // 1. Forward declare the struct inside the class
+    struct SVDResult;
 
-    // singular value decomposition (A = U * S * Vt)
-    // used for PCA and dimensionality reduction
+    // 2. Declare the function that uses it
     SVDResult svd() const;
+};
+
+// 3. Define the struct AFTER the class is fully defined
+// Now the compiler knows what 'Matrix' is, so it can include it as a member
+struct Matrix::SVDResult {
+    Matrix U;
+    Matrix S;  // Singular values (diagonal)
+    Matrix Vt; // V transpose
 };
 
 #endif
