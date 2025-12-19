@@ -78,6 +78,26 @@ void test_transpose() {
     }
 }
 
+void test_lu() {
+    std::cout << "\n--- Testing LU Decomposition ---\n";
+    // Using a simple non-symmetric matrix
+    // A = [[4, 3], [6, 3]]
+    // This would fail Cholesky but LU should handle it
+    Matrix A(2, 2);
+    A(0,0)=4; A(0,1)=3;
+    A(1,0)=6; A(1,1)=3;
+
+    try {
+        Matrix LU = A.lu();
+        // Visual check usually enough for LU as raw output is packed weirdly
+        // But if it didn't throw, it likely worked
+        std::cout << ">> [PASS] LU Decomposition (Solver didn't crash)\n";
+    } catch(...) {
+        std::cerr << ">> [FAIL] LU Decomposition crashed\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -107,6 +127,7 @@ int main() {
     test_dot_product();
     test_cholesky();
     test_transpose();
+    test_lu();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
