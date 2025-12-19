@@ -25,7 +25,7 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 ### Phase I: Mathematical Foundation (Linear Algebra Core)
 *The numerical engine that powers the entire library.*
 
-- [ ] **Matrix Class Architecture**
+- [x] **Matrix Class Architecture**
     - [x] Implement `Matrix` class with `std::vector` storage.
     - [x] Implement **Column-Major** storage logic (required for LAPACK compatibility).
     - [ ] Implement Strides and Views for non-contiguous memory access.
@@ -33,10 +33,10 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
     - [x] Link `Accelerate.framework` via CMake.
     - [x] Implement `matmul` using `cblas_sgemm` (Level 3 BLAS).
     - [x] Implement vector operations using `vDSP` (Addition, Scaling, Dot Product).
-- [ ] **Linear Solvers (LAPACK)**
+- [x] **Linear Solvers (LAPACK)**
     - [x] Implement Cholesky Decomposition (`spotrf`) for symmetric positive-definite matrices.
     - [x] Implement LU Decomposition (`sgetrf`) for general systems.
-    - [ ] Implement Singular Value Decomposition (`sgesvd`) for dimensionality reduction.
+    - [x] Implement Singular Value Decomposition (`sgesvd`) for dimensionality reduction.
 
 ### Phase II: Classical Supervised Learning
 *Optimization problems mapping Input X to Output Y.*
