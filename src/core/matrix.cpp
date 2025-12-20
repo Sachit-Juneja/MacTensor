@@ -3,21 +3,37 @@
 #include <iomanip>
 
 // init with zeros
-Matrix::Matrix(size_t r, size_t c) : rows(r), cols(c) {
+Matrix::Matrix(size_t r, size_t c) 
+    : rows(r), cols(c), offset(0), stride_rows(1), stride_cols(r) {
     // just resizing vector, fills with 0 by default
-    data.resize(r * c, 0.0f);
+    // [modified]: allocating shared storage
+    data = std::make_shared<std::vector<float>>(r * c, 0.0f);
+}
+
+// [new]: view constructor
+Matrix::Matrix(size_t r, size_t c, std::shared_ptr<std::vector<float>> ptr, size_t off, size_t str_r, size_t str_c)
+    : rows(r), cols(c), data(ptr), offset(off), stride_rows(str_r), stride_cols(str_c) {}
+
+// [new]: helpers
+bool Matrix::is_contiguous() const {
+    return stride_rows == 1 && stride_cols == rows;
+}
+
+float* Matrix::raw_data() const {
+    return data->data() + offset;
 }
 
 // accessing elements
 // this was annoying to figure out. standard c++ is row-major
 // but accelerate wants col-major. 
 // so M(row, col) is actually data[col * rows + row]
+// [modified]: updated for general stride formula
 float& Matrix::operator()(size_t r, size_t c) {
-    return data[c * rows + r];
+    return (*data)[offset + c * stride_cols + r * stride_rows];
 }
 
 const float& Matrix::operator()(size_t r, size_t c) const {
-    return data[c * rows + r];
+    return (*data)[offset + c * stride_cols + r * stride_rows];
 }
 
 // random gaussian noise (mean=0, var=1)
@@ -29,7 +45,8 @@ Matrix Matrix::random(size_t r, size_t c) {
     std::mt19937 gen(rd());
     std::normal_distribution<float> d(0.0f, 1.0f);
 
-    for(auto& val : m.data) {
+    // [modified]: iterate directly over storage for speed
+    for(auto& val : *m.data) {
         val = d(gen);
     }
     return m;
@@ -46,20 +63,40 @@ Matrix Matrix::matmul(const Matrix& B) const {
 
     // calling cblas_sgemm (single precision general matrix multiply)
     // this function signature is massive, had to read docs carefully
+    
+    // [modified]: handle strides so we can mul transposed matrices directly!
+    CBLAS_TRANSPOSE TransA = CblasNoTrans;
+    CBLAS_TRANSPOSE TransB = CblasNoTrans;
+    
+    int lda = (int)stride_cols;
+    int ldb = (int)B.stride_cols;
+
+    // if stride_rows > 1, it's effectively transposed (row major)
+    // so we cheat and tell BLAS to transpose it
+    if (stride_rows > 1 && stride_cols == 1) {
+        TransA = CblasTrans;
+        lda = (int)stride_rows;
+    }
+    
+    if (B.stride_rows > 1 && B.stride_cols == 1) {
+        TransB = CblasTrans;
+        ldb = (int)B.stride_rows;
+    }
+
     cblas_sgemm(
         CblasColMajor,      // tell it we are using col-major storage
-        CblasNoTrans,       // dont transpose A
-        CblasNoTrans,       // dont transpose B
+        TransA,             // transpose A if needed
+        TransB,             // transpose B if needed
         (int)rows,          // M
         (int)B.cols,        // N
         (int)cols,          // K
         1.0f,               // alpha (scaling factor)
-        data.data(),        // pointer to A
-        (int)rows,          // lda (leading dimension of A)
-        B.data.data(),      // pointer to B
-        (int)B.rows,        // ldb
+        raw_data(),         // pointer to A [modified]
+        lda,                // lda (leading dimension of A) [modified]
+        B.raw_data(),       // pointer to B [modified]
+        ldb,                // ldb [modified]
         0.0f,               // beta (scaling for C, 0 means overwrite)
-        C.data.data(),      // pointer to C
+        C.raw_data(),       // pointer to C [modified]
         (int)rows           // ldc
     );
 
@@ -68,7 +105,9 @@ Matrix Matrix::matmul(const Matrix& B) const {
 
 // helper to visualize what's happening
 void Matrix::print() const {
-    std::cout << "Matrix(" << rows << "x" << cols << "):\n";
+    std::cout << "Matrix(" << rows << "x" << cols << ")";
+    if (!is_contiguous()) std::cout << " [View]";
+    std::cout << ":\n";
     for(size_t i = 0; i < rows; ++i) {
         std::cout << "[ ";
         for(size_t j = 0; j < cols; ++j) {
@@ -98,12 +137,21 @@ Matrix& Matrix::add(const Matrix& other) {
 
     // vdsp_vadd adds B + A into C
     // confusing argument order but whatever
-    vDSP_vadd(
-        data.data(), 1,         // this is A
-        other.data.data(), 1,   // this is B
-        data.data(), 1,         // result goes back into A
-        data.size()             
-    );
+    
+    // [modified]: check if we can use fast vdsp (must be contiguous)
+    if (is_contiguous() && other.is_contiguous()) {
+        vDSP_vadd(
+            raw_data(), 1,         // this is A
+            other.raw_data(), 1,   // this is B
+            raw_data(), 1,         // result goes back into A
+            rows * cols             
+        );
+    } else {
+        // slow path for complex views
+        for(size_t i=0; i<rows; ++i)
+            for(size_t j=0; j<cols; ++j)
+                (*this)(i,j) += other(i,j);
+    }
     
     return *this;
 }
@@ -116,12 +164,19 @@ Matrix& Matrix::subtract(const Matrix& other) {
 
     // formula is C = A - B
     // pass other as B, this as A
-    vDSP_vsub(
-        other.data.data(), 1,   
-        data.data(), 1,         
-        data.data(), 1,         
-        data.size()
-    );
+    if (is_contiguous() && other.is_contiguous()) {
+        vDSP_vsub(
+            other.raw_data(), 1,   
+            raw_data(), 1,         
+            raw_data(), 1,         
+            rows * cols
+        );
+    } else {
+        // slow path
+        for(size_t i=0; i<rows; ++i)
+            for(size_t j=0; j<cols; ++j)
+                (*this)(i,j) -= other(i,j);
+    }
 
     return *this;
 }
@@ -129,12 +184,18 @@ Matrix& Matrix::subtract(const Matrix& other) {
 // scalar multiplication
 // nice for learning rates later
 Matrix& Matrix::scale(float scalar) {
-    vDSP_vsmul(
-        data.data(), 1,
-        &scalar,
-        data.data(), 1,
-        data.size()
-    );
+    if (is_contiguous()) {
+        vDSP_vsmul(
+            raw_data(), 1,
+            &scalar,
+            raw_data(), 1,
+            rows * cols
+        );
+    } else {
+        for(size_t i=0; i<rows; ++i)
+            for(size_t j=0; j<cols; ++j)
+                (*this)(i,j) *= scalar;
+    }
 
     return *this;
 }
@@ -142,21 +203,51 @@ Matrix& Matrix::scale(float scalar) {
 // operator overloads
 // these create copies cause sometimes we want A + B to be a new matrix
 Matrix Matrix::operator+(const Matrix& other) const {
-    Matrix result = *this; 
-    result.add(other);     
-    return result;
+    Matrix result = *this; // [note]: if this is a view, result is a view too
+    
+    // if we are a view, we need a deep copy before modifying to avoid side effects
+    // but for now let's assume result follows copy-on-write or just standard copy
+    // actually, to be safe with shared_ptr, we should clone if we want a new matrix
+    if (!is_contiguous()) {
+        // force a deep copy into a new contiguous matrix
+        Matrix real_result(rows, cols);
+        for(size_t i=0; i<rows; ++i)
+            for(size_t j=0; j<cols; ++j)
+                real_result(i,j) = (*this)(i,j);
+        real_result.add(other);
+        return real_result;
+    }
+    
+    // if contiguous, standard copy is fine (but wait, copy ctor is shallow now!)
+    // we need to explicitly deep copy for operators
+    Matrix deep_copy(rows, cols);
+    for(size_t i=0; i<rows; ++i)
+         for(size_t j=0; j<cols; ++j)
+             deep_copy(i,j) = (*this)(i,j);
+             
+    deep_copy.add(other);     
+    return deep_copy;
 }
 
 Matrix Matrix::operator-(const Matrix& other) const {
-    Matrix result = *this;
-    result.subtract(other);
-    return result;
+    // deep copy
+    Matrix deep_copy(rows, cols);
+    for(size_t i=0; i<rows; ++i)
+         for(size_t j=0; j<cols; ++j)
+             deep_copy(i,j) = (*this)(i,j);
+
+    deep_copy.subtract(other);
+    return deep_copy;
 }
 
 Matrix Matrix::operator*(float scalar) const {
-    Matrix result = *this;
-    result.scale(scalar);
-    return result;
+    Matrix deep_copy(rows, cols);
+    for(size_t i=0; i<rows; ++i)
+         for(size_t j=0; j<cols; ++j)
+             deep_copy(i,j) = (*this)(i,j);
+             
+    deep_copy.scale(scalar);
+    return deep_copy;
 }
 
 // dot product
@@ -170,12 +261,19 @@ float Matrix::dot(const Matrix& other) const {
     
     // vdsp_dotpr goes brrr
     // stride is 1 cause our data is contiguous
-    vDSP_dotpr(
-        data.data(), 1, 
-        other.data.data(), 1, 
-        &result, 
-        data.size()
-    );
+    if (is_contiguous() && other.is_contiguous()) {
+        vDSP_dotpr(
+            raw_data(), 1, 
+            other.raw_data(), 1, 
+            &result, 
+            rows * cols
+        );
+    } else {
+        // slow path
+        for(size_t i=0; i<rows; ++i)
+             for(size_t j=0; j<cols; ++j)
+                 result += (*this)(i,j) * other(i,j);
+    }
 
     return result;
 }
@@ -189,7 +287,11 @@ Matrix Matrix::cholesky() const {
     }
 
     // copy current matrix cause lapack destroys the input
-    Matrix L = *this;
+    // [modified]: ensure we work on a contiguous copy
+    Matrix L(rows, cols);
+    for(size_t i=0; i<rows; ++i)
+        for(size_t j=0; j<cols; ++j)
+            L(i,j) = (*this)(i,j);
 
     int n = (int)rows;
     int lda = n;
@@ -198,7 +300,7 @@ Matrix Matrix::cholesky() const {
     // calling the lapack routine directly
     // "L" means fill the lower triangle. 
     // careful: lapack expects mutable pointers
-    spotrf_("L", &n, L.data.data(), &lda, &info);
+    spotrf_("L", &n, L.raw_data(), &lda, &info);
 
     if (info != 0) {
         throw std::runtime_error("cholesky failed. matrix might not be positive definite :(");
@@ -217,13 +319,9 @@ Matrix Matrix::cholesky() const {
 
 // simple transpose. standard O(n^2) but needed everywhere
 Matrix Matrix::transpose() const {
-    Matrix T(cols, rows); // dimensions flipped
-    for(size_t i = 0; i < rows; ++i) {
-        for(size_t j = 0; j < cols; ++j) {
-            T(j, i) = (*this)(i, j);
-        }
-    }
-    return T;
+    // [modified]: O(1) VIEW IMPLEMENTATION!
+    // we just swap rows/cols and swap strides. no data copying.
+    return Matrix(cols, rows, data, offset, stride_cols, stride_rows);
 }
 
 // LU decomposition using lapack sgetrf
@@ -233,7 +331,11 @@ Matrix Matrix::lu() const {
         throw std::invalid_argument("lu decomp requires square matrix");
     }
 
-    Matrix Result = *this; // copy data
+    // [modified]: ensure contiguous copy
+    Matrix Result(rows, cols);
+    for(size_t i=0; i<rows; ++i)
+        for(size_t j=0; j<cols; ++j)
+            Result(i,j) = (*this)(i,j);
     
     int n = (int)rows;
     int lda = n;
@@ -247,7 +349,7 @@ Matrix Matrix::lu() const {
     // result is stored in-place:
     // L is below diagonal (unit diagonal implied)
     // U is above diagonal
-    sgetrf_(&n, &n, Result.data.data(), &lda, ipiv.data(), &info);
+    sgetrf_(&n, &n, Result.raw_data(), &lda, ipiv.data(), &info);
 
     if (info != 0) {
         throw std::runtime_error("lu decomposition failed. matrix is singular (uninvertible)");
@@ -284,15 +386,20 @@ Matrix::SVDResult Matrix::svd() const {
     // actual calculation
     // "A" means return all columns of U and VT
     // passing data copies because sgesvd destroys the input matrix
-    std::vector<float> a_copy = data;
+    
+    // [modified]: explicit deep copy for lapack input
+    std::vector<float> a_copy(rows * cols);
+    for(size_t i=0; i<rows; ++i)
+         for(size_t j=0; j<cols; ++j)
+             a_copy[j*rows + i] = (*this)(i,j); // ensure col-major packing
     
     sgesvd_(
         "A", "A", 
         &m, &n, 
         a_copy.data(), &lda, 
-        S.data.data(), 
-        U.data.data(), &ldu, 
-        Vt.data.data(), &ldvt, 
+        S.raw_data(), 
+        U.raw_data(), &ldu, 
+        Vt.raw_data(), &ldvt, 
         work.data(), &lwork, 
         &info
     );

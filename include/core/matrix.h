@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <iostream>
+#include <memory> 
 #include <Accelerate/Accelerate.h> // the secret sauce
 
 class Matrix {
@@ -12,10 +13,20 @@ public:
     
     // storing flat data in a vector cause its easier to manage memory
     // standard vector is safer than raw pointers (no leaks pls)
-    std::vector<float> data; 
+    // [modified]: using shared_ptr now so views can point to the same memory!
+    std::shared_ptr<std::vector<float>> data; 
+
+    // [new]: stride metadata for views
+    size_t offset;      // where this view starts
+    size_t stride_rows; // step to next row
+    size_t stride_cols; // step to next col
 
     // constructors
     Matrix(size_t r, size_t c); 
+    
+    // [new]: internal constructor for creating views (e.g. transpose)
+    Matrix(size_t r, size_t c, std::shared_ptr<std::vector<float>> ptr, size_t off, size_t str_r, size_t str_c);
+
     static Matrix random(size_t r, size_t c); // gaussian init
     static Matrix identity(size_t n);
 
@@ -23,8 +34,13 @@ public:
     // IMPORTANT: using column-major order here!!
     // lapack throws a fit if i use row-major so we gotta adapt
     // index = col * rows + row
+    // [modified]: now uses strides for O(1) access
     float& operator()(size_t r, size_t c);
     const float& operator()(size_t r, size_t c) const;
+
+    // [new]: helper to check if we are contiguous (needed for vdsp/lapack)
+    bool is_contiguous() const;
+    float* raw_data() const;
 
     // math ops (wrappers around the cblas stuff)
     Matrix matmul(const Matrix& other) const; 
@@ -53,6 +69,7 @@ public:
     Matrix cholesky() const;
 
     // flips rows and cols. needed for X^T * X
+    // [modified]: now O(1) - returns a view instead of copying!
     Matrix transpose() const;
 
     // general matrix decomposition (PLU). 
