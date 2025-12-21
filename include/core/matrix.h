@@ -83,6 +83,13 @@ public:
 
     // 2. Declare the function that uses it
     SVDResult svd() const;
+
+    // Creates a deep copy of the matrix (allocates new memory)
+    Matrix clone() const;
+
+    // Solves Ax = B for Symmetric Positive Definite A using Cholesky
+    // Used for the Normal Equation: (X^T * X) * theta = (X^T * y)
+    Matrix solve_spd(const Matrix& B) const;
 };
 
 // 3. Define the struct AFTER the class is fully defined

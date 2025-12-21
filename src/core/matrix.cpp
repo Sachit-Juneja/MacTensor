@@ -410,3 +410,43 @@ Matrix::SVDResult Matrix::svd() const {
 
     return {U, S, Vt};
 }
+
+// Deep copy helper
+Matrix Matrix::clone() const {
+    Matrix copy(rows, cols);
+    // Determine contiguous usage or manually copy
+    if (is_contiguous()) {
+        std::copy(data->begin(), data->end(), copy.data->begin());
+    } else {
+        for(size_t i=0; i<rows; ++i)
+            for(size_t j=0; j<cols; ++j)
+                copy(i,j) = (*this)(i,j);
+    }
+    return copy;
+}
+
+// Solves A * X = B where A is Symmetric Positive Definite
+// Wraps LAPACK 'sposv'
+Matrix Matrix::solve_spd(const Matrix& B) const {
+    if (rows != cols) throw std::invalid_argument("A must be square for solve");
+    if (rows != B.rows) throw std::invalid_argument("Row mismatch between A and B");
+
+    // sposv destroys A and B, so we must clone them
+    Matrix A_copy = this->clone();
+    Matrix X = B.clone(); // B gets overwritten with the solution X
+
+    int n = (int)rows;
+    int nrhs = (int)B.cols;
+    int lda = n;
+    int ldb = n; // B.rows
+    int info = 0;
+
+    // "L" = assume lower triangle is stored
+    sposv_("L", &n, &nrhs, A_copy.raw_data(), &lda, X.raw_data(), &ldb, &info);
+
+    if (info != 0) {
+        throw std::runtime_error("solve_spd failed (matrix might not be positive definite)");
+    }
+
+    return X;
+}
