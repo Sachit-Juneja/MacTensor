@@ -1,4 +1,5 @@
 #include "../include/core/matrix.h"
+#include "../include/ml/linear_regression.h" 
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -183,6 +184,48 @@ void test_views() {
     }
 }
 
+void test_linear_regression() {
+    std::cout << "\n--- Testing Linear Regression ---\n";
+
+    // Synthetic Data Generation
+    // y = 3*x1 + 2*x2 + noise
+    // True Theta = [3, 2]^T
+    
+    size_t N = 100;
+    Matrix X(N, 2);
+    Matrix y(N, 1);
+
+    for(size_t i=0; i<N; ++i) {
+        float x1 = (float)(rand() % 100) / 10.0f; // 0 to 10
+        float x2 = (float)(rand() % 100) / 10.0f;
+        
+        X(i, 0) = x1;
+        X(i, 1) = x2;
+        
+        // y = 3x1 + 2x2
+        y(i, 0) = 3.0f * x1 + 2.0f * x2; 
+    }
+
+    // 1. Test Analytical Solver
+    {
+        LinearRegression model(2);
+        model.fit_analytical(X, y);
+        
+        std::cout << "Analytical Weights (Expect ~3.0, ~2.0):\n";
+        model.theta.print();
+    }
+
+    // 2. Test SGD Solver
+    {
+        LinearRegression model(2);
+        // High learning rate cause data is small, large epochs for convergence
+        model.fit_sgd(X, y, 1000, 0.01f); 
+        
+        std::cout << "SGD Weights (Expect ~3.0, ~2.0):\n";
+        model.theta.print();
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -215,6 +258,7 @@ int main() {
     test_lu();
     test_svd();
     test_views();
+    test_linear_regression();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
