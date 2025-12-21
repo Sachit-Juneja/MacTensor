@@ -41,9 +41,9 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 ### Phase II: Classical Supervised Learning
 *Optimization problems mapping Input X to Output Y.*
 
-- [ ] **Linear Regression**
-    - [ ] Analytical Solver: Normal Equation $\theta = (X^T X)^{-1} X^T y$ using Cholesky.
-    - [ ] Iterative Solver: Stochastic Gradient Descent (SGD) implementation.
+- [x] **Linear Regression**
+    - [x] Analytical Solver: Normal Equation $\theta = (X^T X)^{-1} X^T y$ using Cholesky.
+    - [x] Iterative Solver: Stochastic Gradient Descent (SGD) implementation.
 - [ ] **Regularization**
     - [ ] Ridge Regression (L2 Penalty): Modification of the Normal Equation.
     - [ ] Lasso Regression (L1 Penalty): Coordinate Descent implementation.
