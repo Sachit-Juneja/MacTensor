@@ -152,6 +152,37 @@ void test_svd() {
     }
 }
 
+void test_views() {
+    std::cout << "\n--- Testing Memory Views (Strides) ---\n";
+    Matrix A(2, 2);
+    A(0,0) = 1.0f; A(0,1) = 2.0f;
+    A(1,0) = 3.0f; A(1,1) = 4.0f;
+
+    // Create a transpose view
+    Matrix T = A.transpose();
+
+    // Modify the VIEW
+    std::cout << "Modifying Transpose View T(0,1) to 999.0...\n";
+    T(0,1) = 999.0f; 
+
+    // Check if ORIGINAL is modified
+    // T(0,1) corresponds to A(1,0)
+    if (close_enough(A(1,0), 999.0f)) {
+        std::cout << ">> [PASS] View Memory Sharing (A(1,0) became 999.0)\n";
+    } else {
+        std::cout << ">> [FAIL] View Copy-on-Write Error. A(1,0) is still " << A(1,0) << "\n";
+        exit(1);
+    }
+
+    // Check Contiguity
+    if (A.is_contiguous() && !T.is_contiguous()) {
+         std::cout << ">> [PASS] Contiguity Checks\n";
+    } else {
+         std::cout << ">> [FAIL] Contiguity Checks (A should be contig, T should not)\n";
+         exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -183,6 +214,7 @@ int main() {
     test_transpose();
     test_lu();
     test_svd();
+    test_views();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
