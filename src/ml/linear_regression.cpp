@@ -8,7 +8,7 @@ LinearRegression::LinearRegression(size_t input_dim)
     theta.scale(0.01f);
 }
 
-void LinearRegression::fit_analytical(const Matrix& X, const Matrix& y) {
+void LinearRegression::fit_analytical(const Matrix& X, const Matrix& y, float reg_lambda) {
     // Formula: theta = (X^T * X)^-1 * (X^T * y)
     // We solve the system: (X^T * X) * theta = (X^T * y)
     
@@ -18,12 +18,19 @@ void LinearRegression::fit_analytical(const Matrix& X, const Matrix& y) {
     Matrix A = Xt.matmul(X); // The Hessian (X^T * X)
     Matrix b = Xt.matmul(y); // The Projections (X^T * y)
 
+    // Ridge Regression Logic: A = A + lambda * I
+    if (reg_lambda > 0.0f) {
+        Matrix I = Matrix::identity(A.rows);
+        Matrix Penalty = I * reg_lambda;
+        A.add(Penalty); // Add penalty to the Hessian
+    }
+
     // Solve A * theta = b
     // A is symmetric positive definite (usually), so we use Cholesky solver
     theta = A.solve_spd(b);
 }
 
-void LinearRegression::fit_sgd(const Matrix& X, const Matrix& y, size_t epochs, float lr) {
+void LinearRegression::fit_sgd(const Matrix& X, const Matrix& y, size_t epochs, float lr, float reg_lambda) {
     // Gradient Descent: theta = theta - lr * gradient
     // Gradient: (1/m) * X^T * (X * theta - y)
     
@@ -47,9 +54,17 @@ void LinearRegression::fit_sgd(const Matrix& X, const Matrix& y, size_t epochs, 
         // Average the gradient
         gradient.scale(scaling_factor);
 
+        if (reg_lambda > 0.0f) {
+            // We usually don't regularize the bias term (intercept), 
+            // but since our Matrix class doesn't track which row is bias, 
+            // we apply it to all for now (standard for simple implementations).
+            Matrix penalty = theta * reg_lambda;
+            gradient.add(penalty);
+        }
+
         // 4. Update Weights
         // theta = theta - (gradient * lr)
-        theta.subtract(gradient.scale(lr));
+        theta.subtract(gradient * lr); // fixed syntax: gradient.scale(lr) modifies in place
 
         // Optional: Print loss every 10%
         if (i % (epochs / 10) == 0) {
