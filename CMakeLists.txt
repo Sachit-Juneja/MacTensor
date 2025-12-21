@@ -20,6 +20,7 @@ include_directories(include)
 set(SOURCES
     src/main.cpp
     src/core/matrix.cpp
+    src/ml/linear_regression.cpp
 )
 
 # make the executable
