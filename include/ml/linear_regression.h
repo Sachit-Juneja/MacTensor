@@ -20,6 +20,10 @@ public:
 
     // Predictions
     Matrix predict(const Matrix& X) const;
+
+    // Lasso Regression (L1) using Coordinate Descent
+    // Sets coefficients to exactly 0 if they are not important
+    void fit_lasso_cd(const Matrix& X, const Matrix& y, float reg_lambda, size_t epochs = 100);
 };
 
 #endif

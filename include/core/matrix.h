@@ -90,6 +90,12 @@ public:
     // Solves Ax = B for Symmetric Positive Definite A using Cholesky
     // Used for the Normal Equation: (X^T * X) * theta = (X^T * y)
     Matrix solve_spd(const Matrix& B) const;
+
+    // View Helpers (O(1) cost, no copying)
+    // Returns a 1xCols view of a specific row
+    Matrix row(size_t i) const;
+    // Returns a Rowsx1 view of a specific column
+    Matrix col(size_t j) const;
 };
 
 // 3. Define the struct AFTER the class is fully defined

@@ -450,3 +450,19 @@ Matrix Matrix::solve_spd(const Matrix& B) const {
 
     return X;
 }
+
+Matrix Matrix::row(size_t i) const {
+    if (i >= rows) throw std::out_of_range("row index out of bounds");
+    // New view starts at offset + i * stride_rows
+    // It has 1 row, 'cols' columns
+    // Stride for cols remains same, stride for rows is irrelevant (since only 1 row)
+    return Matrix(1, cols, data, offset + i * stride_rows, stride_rows, stride_cols);
+}
+
+Matrix Matrix::col(size_t j) const {
+    if (j >= cols) throw std::out_of_range("col index out of bounds");
+    // New view starts at offset + j * stride_cols
+    // It has 'rows' rows, 1 column
+    // Stride for rows remains same
+    return Matrix(rows, 1, data, offset + j * stride_cols, stride_rows, stride_cols);
+}
