@@ -276,6 +276,42 @@ void test_ridge_regression() {
     }
 }
 
+void test_lasso() {
+    std::cout << "\n--- Testing Lasso Regression (L1) ---\n";
+
+    // Scenario: Feature 1 is strong, Feature 2 is weak/useless
+    // y = 1*x1 + 0*x2
+    size_t N = 50;
+    Matrix X(N, 2);
+    Matrix y(N, 1);
+
+    for(size_t i=0; i<N; ++i) {
+        X(i, 0) = (float)(rand()%10); 
+        X(i, 1) = (float)(rand()%10); 
+        y(i, 0) = 1.0f * X(i, 0); // Strictly depends on x1
+    }
+
+    // 1. Ridge (L2) - shrinks x2 but rarely makes it 0.0000
+    LinearRegression ridge(2);
+    ridge.fit_analytical(X, y, 1.0f);
+    std::cout << "Ridge Weights (x2 should be small but non-zero):\n";
+    ridge.theta.print();
+
+    // 2. Lasso (L1) - should snap x2 to EXACTLY 0.0000
+    LinearRegression lasso(2);
+    // Use smaller lambda because the 'm' factor scales it up in the code
+    lasso.fit_lasso_cd(X, y, 0.5f, 100); 
+    std::cout << "Lasso Weights (x2 should be EXACTLY 0.0000):\n";
+    lasso.theta.print();
+
+    if (std::abs(lasso.theta(1,0)) < 1e-4 && std::abs(lasso.theta(0,0)) > 0.1f) {
+        std::cout << ">> [PASS] Lasso successfully performed feature selection (Sparsity).\n";
+    } else {
+        std::cerr << ">> [FAIL] Lasso failed to zero out feature 2.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -310,6 +346,7 @@ int main() {
     test_views();
     test_linear_regression();
     test_ridge_regression();
+    test_lasso();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
