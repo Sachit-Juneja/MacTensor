@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include "../include/ml/logistic_regression.h"
+
 
 // helper to check if things are roughly equal
 bool close_enough(float a, float b) {
@@ -312,6 +314,45 @@ void test_lasso() {
     }
 }
 
+void test_logistic_regression() {
+    std::cout << "\n--- Testing Logistic Regression (Newton-Raphson) ---\n";
+
+    // Dataset: Logic OR Gate
+    // x1, x2  -> y
+    // 0,  0   -> 0
+    // 0,  1   -> 1
+    // 1,  0   -> 1
+    // 1,  1   -> 1
+    
+    // We add a Bias term explicitly as x0 = 1
+    Matrix X(4, 3);
+    Matrix y(4, 1);
+    
+    // Row 0: [1, 0, 0] -> 0
+    X(0,0)=1; X(0,1)=0; X(0,2)=0; y(0,0)=0;
+    // Row 1: [1, 0, 1] -> 1
+    X(1,0)=1; X(1,1)=0; X(1,2)=1; y(1,0)=1;
+    // Row 2: [1, 1, 0] -> 1
+    X(2,0)=1; X(2,1)=1; X(2,2)=0; y(2,0)=1;
+    // Row 3: [1, 1, 1] -> 1
+    X(3,0)=1; X(3,1)=1; X(3,2)=1; y(3,0)=1;
+
+    LogisticRegression model(3);
+    model.fit_newton(X, y, 5); // 5 iterations should be enough for Newton
+
+    std::cout << "Predictions (Expected: 0, 1, 1, 1):\n";
+    Matrix preds = model.predict(X);
+    preds.transpose().print(); // Print horizontally
+    
+    // Check Accuracy
+    if (preds(0,0) == 0 && preds(1,0) == 1 && preds(2,0) == 1 && preds(3,0) == 1) {
+        std::cout << ">> [PASS] Logistic Regression learned OR gate.\n";
+    } else {
+        std::cerr << ">> [FAIL] Wrong predictions.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -347,6 +388,7 @@ int main() {
     test_linear_regression();
     test_ridge_regression();
     test_lasso();
+    test_logistic_regression();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
