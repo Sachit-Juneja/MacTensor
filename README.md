@@ -44,9 +44,9 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 - [x] **Linear Regression**
     - [x] Analytical Solver: Normal Equation $\theta = (X^T X)^{-1} X^T y$ using Cholesky.
     - [x] Iterative Solver: Stochastic Gradient Descent (SGD) implementation.
-- [ ] **Regularization**
-    - [ ] Ridge Regression (L2 Penalty): Modification of the Normal Equation.
-    - [ ] Lasso Regression (L1 Penalty): Coordinate Descent implementation.
+- [x] **Regularization**
+    - [x] Ridge Regression (L2 Penalty): Modification of the Normal Equation.
+    - [x] Lasso Regression (L1 Penalty): Coordinate Descent implementation.
 - [ ] **Logistic Regression**
     - [ ] Sigmoid Activation Function $\sigma(z) = 1 / (1 + e^{-z})$.
     - [ ] Cross-Entropy Loss (Log-Loss) calculation.
