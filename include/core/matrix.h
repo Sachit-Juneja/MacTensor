@@ -96,6 +96,10 @@ public:
     Matrix row(size_t i) const;
     // Returns a Rowsx1 view of a specific column
     Matrix col(size_t j) const;
+
+    // Apply a function element-wise (e.g., sigmoid, log)
+    // Returns a new matrix
+    Matrix apply(std::function<float(float)> func) const;
 };
 
 // 3. Define the struct AFTER the class is fully defined

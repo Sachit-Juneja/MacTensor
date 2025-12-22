@@ -466,3 +466,21 @@ Matrix Matrix::col(size_t j) const {
     // Stride for rows remains same
     return Matrix(rows, 1, data, offset + j * stride_cols, stride_rows, stride_cols);
 }
+
+Matrix Matrix::apply(std::function<float(float)> func) const {
+    Matrix result(rows, cols);
+    // If contiguous, we can loop linearly (optimization)
+    if (is_contiguous()) {
+        for(size_t i=0; i<data->size(); ++i) {
+             (*result.data)[i] = func((*data)[i + offset]);
+        }
+    } else {
+        // Safe fallback for views
+        for(size_t i=0; i<rows; ++i) {
+            for(size_t j=0; j<cols; ++j) {
+                result(i,j) = func((*this)(i,j));
+            }
+        }
+    }
+    return result;
+}
