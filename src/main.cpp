@@ -226,6 +226,56 @@ void test_linear_regression() {
     }
 }
 
+void test_ridge_regression() {
+    std::cout << "\n--- Testing Ridge Regression (L2) ---\n";
+
+    // Data: y = 1*x1 + 1*x2
+    // This creates a SINGULAR matrix X^T * X because x1 and x2 are identical.
+    size_t N = 50;
+    Matrix X(N, 2);
+    Matrix y(N, 1);
+
+    for(size_t i=0; i<N; ++i) {
+        X(i, 0) = 1.0f; 
+        X(i, 1) = 1.0f;
+        y(i, 0) = 2.0f; 
+    }
+
+    // 1. Standard OLS (Lambda = 0)
+    // This MUST fail because the matrix is singular and we are using a Cholesky solver.
+    std::cout << "[1] Testing OLS (Lambda=0) on singular data...\n";
+    try {
+        LinearRegression ols(2);
+        ols.fit_analytical(X, y, 0.0f);
+        std::cerr << ">> [FAIL] OLS should have thrown an error on singular matrix!\n";
+        exit(1);
+    } catch (const std::exception& e) {
+        std::cout << ">> [PASS] OLS correctly failed (Singular Matrix): " << e.what() << "\n";
+    }
+
+    // 2. Ridge (Lambda = 10.0)
+    // This MUST succeed because adding Lambda*I makes the matrix Positive Definite.
+    std::cout << "[2] Testing Ridge (Lambda=10.0)...\n";
+    try {
+        LinearRegression ridge(2);
+        ridge.fit_analytical(X, y, 10.0f); // High penalty
+        
+        std::cout << "Ridge Weights (Expect ~0.909 due to shrinkage):\n";
+        ridge.theta.print();
+        
+        // Analytical Result for this data: theta = 0.90909...
+        if (std::abs(ridge.theta(0,0) - 0.909f) < 0.01f) {
+             std::cout << ">> [PASS] Ridge Regression fixed the singularity!\n";
+        } else {
+             std::cerr << ">> [FAIL] Ridge values incorrect. Got " << ridge.theta(0,0) << "\n";
+             exit(1);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << ">> [FAIL] Ridge crashed: " << e.what() << "\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -259,6 +309,7 @@ int main() {
     test_svd();
     test_views();
     test_linear_regression();
+    test_ridge_regression();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
