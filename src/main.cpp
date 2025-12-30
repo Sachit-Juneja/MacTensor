@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 #include "../include/ml/logistic_regression.h"
+#include "../include/ml/decision_tree.h"
 
 
 // helper to check if things are roughly equal
@@ -353,6 +354,51 @@ void test_logistic_regression() {
     }
 }
 
+void test_decision_tree() {
+    std::cout << "\n--- Testing Decision Tree Regressor ---\n";
+
+    // Dataset: Non-linear curve y = x^2
+    // Range -5 to 5
+    size_t N = 20;
+    Matrix X(N, 1);
+    Matrix y(N, 1);
+
+    for(size_t i=0; i<N; ++i) {
+        float val = -5.0f + (float)i * 0.5f; // -5, -4.5, ...
+        X(i, 0) = val;
+        y(i, 0) = val * val; // y = x^2
+    }
+
+    // 1. Train Tree
+    DecisionTreeRegressor tree(5, 2); // Depth 5
+    tree.fit(X, y);
+
+    // 2. Predict on new data
+    // Let's predict for x = 3.2. 
+    // True y = 10.24. 
+    // Nearest training points were 3.0 (9.0) and 3.5 (12.25).
+    // Tree should predict something in between.
+    Matrix query(1, 1);
+    query(0,0) = 3.2f; 
+    
+    Matrix pred = tree.predict(query);
+    std::cout << "Pred for x=3.2: " << pred(0,0) << " (True: 10.24)\n";
+
+    // 3. Measure Training Error (MSE)
+    Matrix all_preds = tree.predict(X);
+    Matrix diff = all_preds - y;
+    float mse = diff.dot(diff) / N;
+    
+    std::cout << "Tree Training MSE: " << mse << "\n";
+
+    if (mse < 1.0f) {
+        std::cout << ">> [PASS] Decision Tree fit non-linear data (MSE < 1.0).\n";
+    } else {
+        std::cerr << ">> [FAIL] MSE too high (" << mse << "). Tree didn't learn.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -389,6 +435,7 @@ int main() {
     test_ridge_regression();
     test_lasso();
     test_logistic_regression();
+    test_decision_tree();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;

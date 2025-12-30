@@ -22,6 +22,7 @@ set(SOURCES
     src/core/matrix.cpp
     src/ml/linear_regression.cpp
     src/ml/logistic_regression.cpp 
+    src/ml/decision_tree.cpp
 )
 
 # make the executable
