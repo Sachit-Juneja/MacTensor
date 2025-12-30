@@ -47,10 +47,10 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 - [x] **Regularization**
     - [x] Ridge Regression (L2 Penalty): Modification of the Normal Equation.
     - [x] Lasso Regression (L1 Penalty): Coordinate Descent implementation.
-- [ ] **Logistic Regression**
-    - [ ] Sigmoid Activation Function $\sigma(z) = 1 / (1 + e^{-z})$.
-    - [ ] Cross-Entropy Loss (Log-Loss) calculation.
-    - [ ] Newton-Raphson optimization method (utilizing the Hessian).
+- [x] **Logistic Regression**
+    - [x] Sigmoid Activation Function $\sigma(z) = 1 / (1 + e^{-z})$.
+    - [x] Cross-Entropy Loss (Log-Loss) calculation.
+    - [x] Newton-Raphson optimization method (utilizing the Hessian).
 - [ ] **Tree-Based Models**
     - [ ] Decision Tree Regressor (Variance Reduction split).
     - [ ] Decision Tree Classifier (Gini Impurity / Entropy split).
