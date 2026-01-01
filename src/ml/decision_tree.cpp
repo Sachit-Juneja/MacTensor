@@ -286,7 +286,7 @@ std::shared_ptr<Node> DecisionTreeClassifier::build_tree(const Matrix& X, const 
         }
     }
 
-    if (best_gini_gain < 1e-5) {
+    if (best_gini_gain < 0) { // Why wuld this happen? No valid split found
         node->is_leaf = true;
         return node;
     }
