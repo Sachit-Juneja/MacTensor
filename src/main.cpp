@@ -5,6 +5,7 @@
 #include <vector>
 #include "../include/ml/logistic_regression.h"
 #include "../include/ml/decision_tree.h"
+#include "../include/ml/gradient_boosting.h" 
 
 
 // helper to check if things are roughly equal
@@ -427,6 +428,43 @@ void test_decision_tree_classifier() {
     }
 }
 
+void test_gradient_boosting() {
+    std::cout << "\n--- Testing Gradient Boosting (XGBoost Lite) ---\n";
+
+    // Dataset: Non-linear y = x^2
+    // Range -5 to 5
+    size_t N = 50;
+    Matrix X(N, 1);
+    Matrix y(N, 1);
+
+    for(size_t i=0; i<N; ++i) {
+        float val = -5.0f + (float)i * 0.2f; 
+        X(i, 0) = val;
+        y(i, 0) = val * val; 
+    }
+
+    // 1. Train Gradient Boosting
+    // 50 trees, depth 2 (weak learners), learning rate 0.1
+    GradientBoostingRegressor gbm(50, 0.1f, 2);
+    gbm.fit(X, y);
+
+    // 2. Measure Error
+    Matrix preds = gbm.predict(X);
+    Matrix diff = preds - y;
+    float mse = diff.dot(diff) / N;
+
+    std::cout << "Final GBM MSE: " << mse << "\n";
+
+    // Compare with single tree logic (sanity check)
+    // A single stump (depth 1) would have high error. 50 of them should be great.
+    if (mse < 0.5f) {
+        std::cout << ">> [PASS] Gradient Boosting converged on non-linear data.\n";
+    } else {
+        std::cerr << ">> [FAIL] MSE too high. Boosting didn't work.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -465,6 +503,7 @@ int main() {
     test_logistic_regression();
     test_decision_tree();
     test_decision_tree_classifier();
+    test_gradient_boosting();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
