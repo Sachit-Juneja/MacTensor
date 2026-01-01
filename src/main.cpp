@@ -399,6 +399,34 @@ void test_decision_tree() {
     }
 }
 
+void test_decision_tree_classifier() {
+    std::cout << "\n--- Testing Decision Tree Classifier (XOR) ---\n";
+
+    // Dataset: XOR Gate
+    // (0,0)->0, (0,1)->1, (1,0)->1, (1,1)->0
+    Matrix X(4, 2);
+    Matrix y(4, 1);
+
+    X(0,0)=0; X(0,1)=0; y(0,0)=0;
+    X(1,0)=0; X(1,1)=1; y(1,0)=1;
+    X(2,0)=1; X(2,1)=0; y(2,0)=1;
+    X(3,0)=1; X(3,1)=1; y(3,0)=0;
+
+    DecisionTreeClassifier clf(4, 2);
+    clf.fit(X, y);
+    
+    Matrix preds = clf.predict(X);
+    std::cout << "Predictions (Expected: 0, 1, 1, 0):\n";
+    preds.transpose().print();
+
+    if (preds(0,0)==0 && preds(1,0)==1 && preds(2,0)==1 && preds(3,0)==0) {
+        std::cout << ">> [PASS] Classifier solved XOR.\n";
+    } else {
+        std::cerr << ">> [FAIL] Classifier failed XOR.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -436,6 +464,7 @@ int main() {
     test_lasso();
     test_logistic_regression();
     test_decision_tree();
+    test_decision_tree_classifier();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
