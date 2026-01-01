@@ -23,6 +23,7 @@ set(SOURCES
     src/ml/linear_regression.cpp
     src/ml/logistic_regression.cpp 
     src/ml/decision_tree.cpp
+    src/ml/gradient_boosting.cpp
 )
 
 # make the executable

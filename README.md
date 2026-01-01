@@ -53,7 +53,7 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
     - [x] Newton-Raphson optimization method (utilizing the Hessian).
 - [ ] **Tree-Based Models**
     - [x] Decision Tree Regressor (Variance Reduction split).
-    - [ ] Decision Tree Classifier (Gini Impurity / Entropy split).
+    - [x] Decision Tree Classifier (Gini Impurity / Entropy split).
     - [ ] **XGBoost Implementation:** Gradient Boosting on Decision Trees (Additive Training).
 
 ### Phase III: Unsupervised Learning
