@@ -52,7 +52,7 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
     - [x] Cross-Entropy Loss (Log-Loss) calculation.
     - [x] Newton-Raphson optimization method (utilizing the Hessian).
 - [ ] **Tree-Based Models**
-    - [ ] Decision Tree Regressor (Variance Reduction split).
+    - [x] Decision Tree Regressor (Variance Reduction split).
     - [ ] Decision Tree Classifier (Gini Impurity / Entropy split).
     - [ ] **XGBoost Implementation:** Gradient Boosting on Decision Trees (Additive Training).
 
