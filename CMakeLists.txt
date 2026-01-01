@@ -24,6 +24,7 @@ set(SOURCES
     src/ml/logistic_regression.cpp 
     src/ml/decision_tree.cpp
     src/ml/gradient_boosting.cpp
+    src/ml/kmeans.cpp
 )
 
 # make the executable
