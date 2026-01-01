@@ -6,6 +6,7 @@
 #include "../include/ml/logistic_regression.h"
 #include "../include/ml/decision_tree.h"
 #include "../include/ml/gradient_boosting.h" 
+#include "../include/ml/kmeans.h"
 
 
 // helper to check if things are roughly equal
@@ -465,6 +466,53 @@ void test_gradient_boosting() {
     }
 }
 
+void test_kmeans() {
+    std::cout << "\n--- Testing K-Means Clustering ---\n";
+
+    // Data: 2 Clusters
+    // Cluster 1: Random points around (0,0)
+    // Cluster 2: Random points around (10,10)
+    size_t N = 20;
+    Matrix X(2 * N, 2);
+    
+    for(size_t i=0; i<N; ++i) {
+        // Cluster 1
+        X(i, 0) = (float)(rand() % 200) / 100.0f; // 0 to 2
+        X(i, 1) = (float)(rand() % 200) / 100.0f;
+        
+        // Cluster 2
+        X(N + i, 0) = 10.0f + (float)(rand() % 200) / 100.0f; // 10 to 12
+        X(N + i, 1) = 10.0f + (float)(rand() % 200) / 100.0f;
+    }
+
+    // Run K-Means
+    KMeans model(2); // k=2
+    model.fit(X);
+    
+    std::cout << "Centroids Found:\n";
+    model.centroids.print();
+
+    // Check if centroids are roughly at (1,1) and (11,11)
+    // We don't know order, so we check min distance to targets
+    bool c1_ok = false;
+    bool c2_ok = false;
+
+    for(size_t i=0; i<2; ++i) {
+        float x = model.centroids(i, 0);
+        float y = model.centroids(i, 1);
+        
+        if (x < 3.0f && y < 3.0f) c1_ok = true;
+        if (x > 8.0f && y > 8.0f) c2_ok = true;
+    }
+
+    if (c1_ok && c2_ok) {
+        std::cout << ">> [PASS] K-Means identified both clusters.\n";
+    } else {
+        std::cerr << ">> [FAIL] Centroids are off.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -504,6 +552,7 @@ int main() {
     test_decision_tree();
     test_decision_tree_classifier();
     test_gradient_boosting();
+    test_kmeans();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
