@@ -37,4 +37,26 @@ private:
     float predict_one(const std::shared_ptr<Node>& node, const Matrix& row) const;
 };
 
+class DecisionTreeClassifier {
+public:
+    std::shared_ptr<Node> root;
+    int max_depth;
+    int min_samples_split;
+
+    DecisionTreeClassifier(int max_depth = 5, int min_samples_split = 2);
+    void fit(const Matrix& X, const Matrix& y);
+    Matrix predict(const Matrix& X) const;
+
+private:
+    std::shared_ptr<Node> build_tree(const Matrix& X, const Matrix& y, int depth);
+    
+    // Gini Impurity: 1 - sum(p^2)
+    float calculate_gini(const Matrix& y) const;
+    
+    // Returns the most frequent class in y
+    float calculate_majority_class(const Matrix& y) const;
+    
+    float predict_one(const std::shared_ptr<Node>& node, const Matrix& row) const;
+};
+
 #endif

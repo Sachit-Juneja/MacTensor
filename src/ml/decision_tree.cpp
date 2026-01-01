@@ -3,6 +3,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <map>
 
 DecisionTreeRegressor::DecisionTreeRegressor(int max_depth, int min_samples_split)
     : max_depth(max_depth), min_samples_split(min_samples_split) {}
@@ -155,6 +156,161 @@ std::shared_ptr<Node> DecisionTreeRegressor::build_tree(const Matrix& X, const M
     // 5. Recurse
     node->left = build_tree(X_left, y_left, depth + 1);
     node->right = build_tree(X_right, y_right, depth + 1);
+
+    return node;
+}
+
+DecisionTreeClassifier::DecisionTreeClassifier(int max_depth, int min_samples_split)
+    : max_depth(max_depth), min_samples_split(min_samples_split) {}
+
+void DecisionTreeClassifier::fit(const Matrix& X, const Matrix& y) {
+    std::cout << "[DecisionTree] Building Classifier (Max Depth: " << max_depth << ")...\n";
+    root = build_tree(X, y, 0);
+}
+
+Matrix DecisionTreeClassifier::predict(const Matrix& X) const {
+    Matrix preds(X.rows, 1);
+    for(size_t i = 0; i < X.rows; ++i) {
+        preds(i, 0) = predict_one(root, X.row(i));
+    }
+    return preds;
+}
+
+float DecisionTreeClassifier::predict_one(const std::shared_ptr<Node>& node, const Matrix& row) const {
+    if (node->is_leaf) return node->value;
+    
+    float val = row(0, node->split_feature);
+    if (val <= node->split_threshold) {
+        return predict_one(node->left, row);
+    } else {
+        return predict_one(node->right, row);
+    }
+}
+
+// Calculate Gini Impurity = 1 - sum(probability_of_class_i ^ 2)
+float DecisionTreeClassifier::calculate_gini(const Matrix& y) const {
+    if (y.rows == 0) return 0.0f;
+
+    std::map<float, int> counts;
+    for(size_t i=0; i<y.rows; ++i) {
+        counts[y(i,0)]++;
+    }
+
+    float impurity = 1.0f;
+    for(auto const& [val, count] : counts) {
+        float prob = (float)count / y.rows;
+        impurity -= prob * prob;
+    }
+    return impurity;
+}
+
+float DecisionTreeClassifier::calculate_majority_class(const Matrix& y) const {
+    if (y.rows == 0) return 0.0f;
+    
+    std::map<float, int> counts;
+    for(size_t i=0; i<y.rows; ++i) {
+        counts[y(i,0)]++;
+    }
+
+    float majority_class = counts.begin()->first;
+    int max_count = -1;
+
+    for(auto const& [val, count] : counts) {
+        if (count > max_count) {
+            max_count = count;
+            majority_class = val;
+        }
+    }
+    return majority_class;
+}
+
+std::shared_ptr<Node> DecisionTreeClassifier::build_tree(const Matrix& X, const Matrix& y, int depth) {
+    auto node = std::make_shared<Node>();
+    
+    // 1. Calculate Leaf Value (Majority Class)
+    node->value = calculate_majority_class(y);
+
+    // 2. Check Stopping Criteria
+    // Stop if max depth, not enough samples, or if pure (gini is 0)
+    float current_gini = calculate_gini(y);
+    if (depth >= max_depth || (int)X.rows < min_samples_split || current_gini < 1e-6) {
+        node->is_leaf = true;
+        return node;
+    }
+
+    // 3. Find Best Split (Minimize Weighted Gini)
+    float best_gini_gain = -1.0f;
+    size_t best_feature = 0;
+    float best_threshold = 0.0f;
+    
+    // We want to maximize Gain = OldGini - WeightedNewGini
+    // Which is equivalent to minimizing WeightedNewGini
+    // But tracking Gain is often easier to reason about 0 cutoff
+    
+    for(size_t feat = 0; feat < X.cols; ++feat) {
+        for(size_t row = 0; row < X.rows; ++row) {
+            float thresh = X(row, feat);
+            
+            // Split indices
+            std::vector<size_t> left_idxs;
+            std::vector<size_t> right_idxs;
+            
+            for(size_t i=0; i<X.rows; ++i) {
+                if (X(i, feat) <= thresh) left_idxs.push_back(i);
+                else right_idxs.push_back(i);
+            }
+
+            if (left_idxs.empty() || right_idxs.empty()) continue;
+
+            // Manual Slicing (Optimization: Do this without full copy in V2)
+            Matrix y_left(left_idxs.size(), 1);
+            Matrix y_right(right_idxs.size(), 1);
+            for(size_t k=0; k<left_idxs.size(); ++k) y_left(k,0) = y(left_idxs[k], 0);
+            for(size_t k=0; k<right_idxs.size(); ++k) y_right(k,0) = y(right_idxs[k], 0);
+
+            // Calculate Weighted Gini
+            float g_left = calculate_gini(y_left);
+            float g_right = calculate_gini(y_right);
+            
+            float p_left = (float)left_idxs.size() / X.rows;
+            float p_right = (float)right_idxs.size() / X.rows;
+            
+            float weighted_gini = p_left * g_left + p_right * g_right;
+            float gain = current_gini - weighted_gini;
+
+            if (gain > best_gini_gain) {
+                best_gini_gain = gain;
+                best_feature = feat;
+                best_threshold = thresh;
+            }
+        }
+    }
+
+    if (best_gini_gain < 1e-5) {
+        node->is_leaf = true;
+        return node;
+    }
+
+    node->split_feature = best_feature;
+    node->split_threshold = best_threshold;
+
+    // Recurse
+    std::vector<size_t> left_idxs, right_idxs;
+    for(size_t i=0; i<X.rows; ++i) {
+        if (X(i, best_feature) <= best_threshold) left_idxs.push_back(i);
+        else right_idxs.push_back(i);
+    }
+    
+    auto slice_rows = [&](const Matrix& src, const std::vector<size_t>& idxs) {
+        Matrix out(idxs.size(), src.cols);
+        for(size_t i=0; i<idxs.size(); ++i) 
+            for(size_t j=0; j<src.cols; ++j) 
+                out(i, j) = src(idxs[i], j);
+        return out;
+    };
+
+    node->left = build_tree(slice_rows(X, left_idxs), slice_rows(y, left_idxs), depth + 1);
+    node->right = build_tree(slice_rows(X, right_idxs), slice_rows(y, right_idxs), depth + 1);
 
     return node;
 }
