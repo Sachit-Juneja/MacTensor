@@ -54,7 +54,7 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 - [ ] **Tree-Based Models**
     - [x] Decision Tree Regressor (Variance Reduction split).
     - [x] Decision Tree Classifier (Gini Impurity / Entropy split).
-    - [ ] **XGBoost Implementation:** Gradient Boosting on Decision Trees (Additive Training).
+    - [x] **XGBoost Implementation:** Gradient Boosting on Decision Trees (Additive Training).
 
 ### Phase III: Unsupervised Learning
 *Pattern discovery and dimensionality reduction.*
