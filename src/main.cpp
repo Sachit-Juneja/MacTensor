@@ -7,6 +7,7 @@
 #include "../include/ml/decision_tree.h"
 #include "../include/ml/gradient_boosting.h" 
 #include "../include/ml/kmeans.h"
+#include "../include/ml/pca.h"
 
 
 // helper to check if things are roughly equal
@@ -513,6 +514,54 @@ void test_kmeans() {
     }
 }
 
+void test_pca() {
+    std::cout << "\n--- Testing PCA (Dimensionality Reduction) ---\n";
+
+    // Create highly correlated data (y approx x)
+    // Most info is on the diagonal axis
+    size_t N = 10;
+    Matrix X(N, 2);
+    
+    for(size_t i=0; i<N; ++i) {
+        float val = (float)i;
+        X(i, 0) = val; 
+        X(i, 1) = val + ((float)(rand()%10)/50.0f); // Small noise
+    }
+
+    std::cout << "Original Data (first 3 rows):\n";
+    // Just printing a view
+    for(int i=0; i<3; ++i) std::cout << "[" << X(i,0) << ", " << X(i,1) << "]\n";
+
+    // 1. Fit PCA (Reduce 2D -> 1D)
+    PCA pca(1);
+    pca.fit(X);
+
+    std::cout << "Top Component (Eigenvector):\n";
+    pca.components.print(); // Should be roughly [0.707, 0.707] (normalized 1,1 vector)
+
+    // 2. Transform
+    Matrix X_proj = pca.transform(X);
+    std::cout << "Projected Data (1D):\n";
+    for(int i=0; i<3; ++i) std::cout << "[" << X_proj(i,0) << "]\n";
+
+    // 3. Inverse Transform (Reconstruction)
+    Matrix X_recon = pca.inverse_transform(X_proj);
+    
+    // Check Reconstruction Error
+    Matrix diff = X - X_recon;
+    float mse = diff.dot(diff) / N; // Using dot for sum of squares
+    
+    std::cout << "Reconstruction MSE: " << mse << "\n";
+
+    // The component should explain most variance
+    if (mse < 0.1f) { // Error should be tiny since noise was tiny
+        std::cout << ">> [PASS] PCA preserved the main structure.\n";
+    } else {
+        std::cerr << ">> [FAIL] PCA lost too much info.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -553,6 +602,7 @@ int main() {
     test_decision_tree_classifier();
     test_gradient_boosting();
     test_kmeans();
+    test_pca();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;
