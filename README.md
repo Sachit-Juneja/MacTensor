@@ -51,7 +51,7 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
     - [x] Sigmoid Activation Function $\sigma(z) = 1 / (1 + e^{-z})$.
     - [x] Cross-Entropy Loss (Log-Loss) calculation.
     - [x] Newton-Raphson optimization method (utilizing the Hessian).
-- [ ] **Tree-Based Models**
+- [x] **Tree-Based Models**
     - [x] Decision Tree Regressor (Variance Reduction split).
     - [x] Decision Tree Classifier (Gini Impurity / Entropy split).
     - [x] **XGBoost Implementation:** Gradient Boosting on Decision Trees (Additive Training).
@@ -59,9 +59,9 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 ### Phase III: Unsupervised Learning
 *Pattern discovery and dimensionality reduction.*
 
-- [ ] **Clustering**
-    - [ ] K-Means: Lloyd's Algorithm implementation.
-    - [ ] K-Means++: Probabilistic seeding for faster convergence.
+- [x] **Clustering**
+    - [x] K-Means: Lloyd's Algorithm implementation.
+    - [x] K-Means++: Probabilistic seeding for faster convergence.
 - [ ] **Dimensionality Reduction**
     - [ ] Principal Component Analysis (PCA) via Covariance Matrix decomposition.
     - [ ] PCA via SVD (for numerical stability).
