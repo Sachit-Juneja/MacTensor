@@ -25,6 +25,7 @@ set(SOURCES
     src/ml/decision_tree.cpp
     src/ml/gradient_boosting.cpp
     src/ml/kmeans.cpp
+    src/ml/pca.cpp 
 )
 
 # make the executable
