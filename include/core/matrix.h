@@ -100,6 +100,10 @@ public:
     // Apply a function element-wise (e.g., sigmoid, log)
     // Returns a new matrix
     Matrix apply(std::function<float(float)> func) const;
+
+    // Determinant and Inverse
+    float determinant() const;
+    Matrix inverse() const;
 };
 
 // 3. Define the struct AFTER the class is fully defined

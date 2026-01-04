@@ -21,7 +21,7 @@ void PCA::fit(const Matrix& X) {
 
     // 2. Center the data (X - Mean)
     // PCA essentially rotates data around the origin, so we gotta move the origin to the data center
-    Matrix X_centered = X; // Deep copy
+    Matrix X_centered = X.clone(); // Deep copy
     for(size_t i=0; i<X.rows; ++i) {
         for(size_t j=0; j<X.cols; ++j) {
             X_centered(i, j) -= mean(0, j);
@@ -62,7 +62,7 @@ Matrix PCA::transform(const Matrix& X) const {
     // Project data: X_new = (X - mean) * Components_Transposed
     
     // 1. Center the input
-    Matrix X_centered = X;
+    Matrix X_centered = X.clone();
     for(size_t i=0; i<X.rows; ++i) {
         for(size_t j=0; j<X.cols; ++j) {
             X_centered(i, j) -= mean(0, j);

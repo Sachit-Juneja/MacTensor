@@ -518,7 +518,6 @@ void test_pca() {
     std::cout << "\n--- Testing PCA (Dimensionality Reduction) ---\n";
 
     // Create highly correlated data (y approx x)
-    // Most info is on the diagonal axis
     size_t N = 10;
     Matrix X(N, 2);
     
@@ -528,36 +527,27 @@ void test_pca() {
         X(i, 1) = val + ((float)(rand()%10)/50.0f); // Small noise
     }
 
-    std::cout << "Original Data (first 3 rows):\n";
-    // Just printing a view
-    for(int i=0; i<3; ++i) std::cout << "[" << X(i,0) << ", " << X(i,1) << "]\n";
-
     // 1. Fit PCA (Reduce 2D -> 1D)
     PCA pca(1);
     pca.fit(X);
 
     std::cout << "Top Component (Eigenvector):\n";
-    pca.components.print(); // Should be roughly [0.707, 0.707] (normalized 1,1 vector)
+    pca.components.print(); 
 
-    // 2. Transform
+    // 2. Transform (This previously crashed!)
     Matrix X_proj = pca.transform(X);
-    std::cout << "Projected Data (1D):\n";
+    std::cout << "Projected Data (1D - First 3):\n";
     for(int i=0; i<3; ++i) std::cout << "[" << X_proj(i,0) << "]\n";
-
-    // 3. Inverse Transform (Reconstruction)
+    
+    // 3. Inverse
     Matrix X_recon = pca.inverse_transform(X_proj);
-    
-    // Check Reconstruction Error
     Matrix diff = X - X_recon;
-    float mse = diff.dot(diff) / N; // Using dot for sum of squares
-    
-    std::cout << "Reconstruction MSE: " << mse << "\n";
+    float mse = diff.dot(diff) / N;
 
-    // The component should explain most variance
-    if (mse < 0.1f) { // Error should be tiny since noise was tiny
-        std::cout << ">> [PASS] PCA preserved the main structure.\n";
+    if (mse < 0.1f) {
+        std::cout << ">> [PASS] PCA preserved structure. MSE: " << mse << "\n";
     } else {
-        std::cerr << ">> [FAIL] PCA lost too much info.\n";
+        std::cerr << ">> [FAIL] PCA MSE high: " << mse << "\n";
         exit(1);
     }
 }

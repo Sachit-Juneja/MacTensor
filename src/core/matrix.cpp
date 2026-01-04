@@ -63,8 +63,6 @@ Matrix Matrix::matmul(const Matrix& B) const {
 
     // calling cblas_sgemm (single precision general matrix multiply)
     // this function signature is massive, had to read docs carefully
-    
-    // [modified]: handle strides so we can mul transposed matrices directly!
     CBLAS_TRANSPOSE TransA = CblasNoTrans;
     CBLAS_TRANSPOSE TransB = CblasNoTrans;
     
@@ -83,6 +81,12 @@ Matrix Matrix::matmul(const Matrix& B) const {
         ldb = (int)B.stride_rows;
     }
 
+    // [FIX]: BLAS throws a tantrum if leading dimension is too small.
+    // Even if it's a 10x1 vector with stride 1, BLAS demands lda >= 10.
+    // So if we are "NoTrans", ensure stride satisfies the dimension requirement.
+    if (TransA == CblasNoTrans && lda < rows) lda = (int)rows;
+    if (TransB == CblasNoTrans && ldb < B.rows) ldb = (int)B.rows;
+
     cblas_sgemm(
         CblasColMajor,      // tell it we are using col-major storage
         TransA,             // transpose A if needed
@@ -91,12 +95,12 @@ Matrix Matrix::matmul(const Matrix& B) const {
         (int)B.cols,        // N
         (int)cols,          // K
         1.0f,               // alpha (scaling factor)
-        raw_data(),         // pointer to A [modified]
-        lda,                // lda (leading dimension of A) [modified]
-        B.raw_data(),       // pointer to B [modified]
-        ldb,                // ldb [modified]
+        raw_data(),         // pointer to A
+        lda,                // lda (leading dimension of A)
+        B.raw_data(),       // pointer to B
+        ldb,                // ldb
         0.0f,               // beta (scaling for C, 0 means overwrite)
-        C.raw_data(),       // pointer to C [modified]
+        C.raw_data(),       // pointer to C
         (int)rows           // ldc
     );
 
@@ -411,13 +415,72 @@ Matrix::SVDResult Matrix::svd() const {
     return {U, S, Vt};
 }
 
+// [NEW] Determinant
+// Calculates "how much volume" the matrix represents. 0 means it's flat (singular).
+float Matrix::determinant() const {
+    if (rows != cols) throw std::invalid_argument("determinant requires square matrix");
+    
+    Matrix A_copy = this->clone();
+    int n = (int)rows;
+    int lda = n;
+    std::vector<int> ipiv(n);
+    int info = 0;
+    
+    // LU Decomp
+    sgetrf_(&n, &n, A_copy.raw_data(), &lda, ipiv.data(), &info);
+    
+    if (info > 0) return 0.0f; // Singular
+
+    // Det is product of diagonal of U * (-1)^swaps
+    float det = 1.0f;
+    for(size_t i=0; i<rows; ++i) {
+        det *= A_copy(i, i);
+        // check if swap happened (ipiv is 1-based in standard lapack, checking deviation)
+        if (ipiv[i] != (int)(i + 1)) {
+            det = -det;
+        }
+    }
+    return det;
+}
+
+// [NEW] Inverse
+// Undoing the matrix multiplication. A * A^-1 = I.
+Matrix Matrix::inverse() const {
+    if (rows != cols) throw std::invalid_argument("inverse requires square matrix");
+    
+    Matrix I = Matrix::identity(rows);
+    
+    // Solving A * X = I using LU
+    Matrix A_copy = this->clone();
+    Matrix X = I; // Result X starts as Identity
+    
+    int n = (int)rows;
+    int nrhs = (int)rows;
+    int lda = n;
+    int ldb = n;
+    std::vector<int> ipiv(n);
+    int info = 0;
+    
+    // 1. Factorize A
+    sgetrf_(&n, &n, A_copy.raw_data(), &lda, ipiv.data(), &info);
+    if (info != 0) throw std::runtime_error("Matrix is singular, cannot invert (div by zero basically)");
+    
+    // 2. Solve for X
+    sgetrs_("N", &n, &nrhs, A_copy.raw_data(), &lda, ipiv.data(), X.raw_data(), &ldb, &info);
+    
+    return X;
+}
+
 // Deep copy helper
 Matrix Matrix::clone() const {
-    Matrix copy(rows, cols);
-    // Determine contiguous usage or manually copy
+    Matrix copy(rows, cols); // allocates new clean storage
+    
     if (is_contiguous()) {
-        std::copy(data->begin(), data->end(), copy.data->begin());
+        // [FIX]: Copy from raw_data() (start of view), not data->begin() (start of storage)
+        // Also only copy rows*cols elements
+        std::copy(raw_data(), raw_data() + (rows * cols), copy.data->begin());
     } else {
+        // Fallback for strided views
         for(size_t i=0; i<rows; ++i)
             for(size_t j=0; j<cols; ++j)
                 copy(i,j) = (*this)(i,j);
@@ -484,3 +547,4 @@ Matrix Matrix::apply(std::function<float(float)> func) const {
     }
     return result;
 }
+
