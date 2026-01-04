@@ -27,6 +27,9 @@ set(SOURCES
     src/ml/kmeans.cpp
     src/ml/pca.cpp 
     src/ml/gmm.cpp
+    src/dl/engine.cpp
+    src/dl/model.cpp
+    src/dl/layers.cpp
 )
 
 # make the executable

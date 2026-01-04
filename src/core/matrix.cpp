@@ -548,3 +548,19 @@ Matrix Matrix::apply(std::function<float(float)> func) const {
     return result;
 }
 
+// Element-wise multiplication
+Matrix Matrix::hadamard(const Matrix& other) const {
+    if (rows != other.rows || cols != other.cols) throw std::invalid_argument("shape mismatch for hadamard");
+    
+    Matrix result(rows, cols);
+    // Fast path using vDSP if contiguous
+    if (is_contiguous() && other.is_contiguous()) {
+        vDSP_vmul(raw_data(), 1, other.raw_data(), 1, result.raw_data(), 1, rows * cols);
+    } else {
+        // Slow path loop
+        for(size_t i=0; i<rows; ++i)
+            for(size_t j=0; j<cols; ++j)
+                result(i,j) = (*this)(i,j) * other(i,j);
+    }
+    return result;
+}

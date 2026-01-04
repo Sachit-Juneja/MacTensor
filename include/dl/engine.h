@@ -7,48 +7,38 @@
 #include <memory>
 #include <unordered_set>
 
-// Forward declaration
 struct Value;
-
-// We use shared_ptr because the graph structure is a messy web of ownership
-// and we don't want to deal with double-free errors or memory leaks.
 using ValuePtr = std::shared_ptr<Value>;
 
 struct Value : public std::enable_shared_from_this<Value> {
     Matrix data;
     Matrix grad;
     
-    // Who created me? (The Inputs)
+    // Graph connection: Who created me?
     std::vector<ValuePtr> children;
     
-    // How do I calculate gradients for my children?
-    // This function is the "Chain Rule" stored as a closure
+    // The "Chain Rule" function for this specific operation
     std::function<void()> _backward;
     
-    // Debugging label (optional)
-    std::string op; 
+    std::string op; // Debug tag (e.g., "+", "matmul")
 
-    // Constructor: Wraps a matrix
+    // Constructor
     Value(Matrix data, std::vector<ValuePtr> children = {}, std::string op = "");
 
-    // The Big Red Button: Triggers backpropagation
+    // The Magic Button: Triggers backpropagation
     void backward();
 
-    // --- Operations (Factories) ---
-    // These create NEW Value nodes and link them to the graph
-    
-    static ValuePtr create(Matrix d); // Leaf node creation
+    // Factory method for creating leaf nodes (inputs/weights)
+    static ValuePtr create(Matrix d);
 
+    // --- Operations ---
     ValuePtr add(ValuePtr other);
     ValuePtr matmul(ValuePtr other);
     ValuePtr relu();
-    
-    // Operator overloads for syntactic sugar (A + B)
-    // defined outside usually, but we can do friends or helpers
 };
 
-// Operator Overloads for cleaner syntax
+// Operator Overloads for sugar (A + B)
 ValuePtr operator+(ValuePtr a, ValuePtr b);
-ValuePtr operator*(ValuePtr a, ValuePtr b); // Matrix Mul (not elementwise for now)
+ValuePtr operator*(ValuePtr a, ValuePtr b); // Matrix Multiplication
 
 #endif

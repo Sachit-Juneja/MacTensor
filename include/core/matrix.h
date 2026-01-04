@@ -104,6 +104,9 @@ public:
     // Determinant and Inverse
     float determinant() const;
     Matrix inverse() const;
+
+    // Element-wise multiplication (A * B element-wise, NOT dot product)
+    Matrix hadamard(const Matrix& other) const;
 };
 
 // 3. Define the struct AFTER the class is fully defined
