@@ -8,6 +8,7 @@
 #include "../include/ml/gradient_boosting.h" 
 #include "../include/ml/kmeans.h"
 #include "../include/ml/pca.h"
+#include "../include/ml/gmm.h"
 
 
 // helper to check if things are roughly equal
@@ -552,6 +553,48 @@ void test_pca() {
     }
 }
 
+void test_gmm() {
+    std::cout << "\n--- Testing Gaussian Mixture Models (GMM) ---\n";
+    
+    // Synthetic Data: 2 Overlapping Clusters
+    // A: Mean (2,2)
+    // B: Mean (8,8)
+    size_t N = 50;
+    Matrix X(2 * N, 2);
+    
+    for(size_t i=0; i<N; ++i) {
+        // Cluster A
+        X(i, 0) = 2.0f + ((rand()%100)/20.0f); 
+        X(i, 1) = 2.0f + ((rand()%100)/50.0f); 
+        
+        // Cluster B
+        X(N+i, 0) = 8.0f + ((rand()%100)/50.0f);
+        X(N+i, 1) = 8.0f + ((rand()%100)/50.0f);
+    }
+    
+    GMM model(2, 20);
+    model.fit(X);
+    
+    std::cout << "GMM Weights: "; model.weights.print();
+    
+    bool found_A = false, found_B = false;
+    for(int j=0; j<2; ++j) {
+        float mx = model.means[j](0,0);
+        float my = model.means[j](0,1);
+        std::cout << "Comp " << j << " Mean: (" << mx << ", " << my << ")\n";
+        
+        if (mx < 5 && my < 5) found_A = true;
+        if (mx > 5 && my > 5) found_B = true;
+    }
+    
+    if (found_A && found_B) {
+        std::cout << ">> [PASS] GMM found both clusters.\n";
+    } else {
+        std::cerr << ">> [FAIL] GMM failed to converge on means.\n";
+        exit(1);
+    }
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -593,6 +636,7 @@ int main() {
     test_gradient_boosting();
     test_kmeans();
     test_pca();
+    test_gmm();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;

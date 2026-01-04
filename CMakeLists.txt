@@ -26,6 +26,7 @@ set(SOURCES
     src/ml/gradient_boosting.cpp
     src/ml/kmeans.cpp
     src/ml/pca.cpp 
+    src/ml/gmm.cpp
 )
 
 # make the executable
