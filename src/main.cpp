@@ -599,14 +599,6 @@ void test_autograd_mlp() {
     std::cout << "\n--- Testing Deep Learning (MLP on XOR) ---\n";
     
     // XOR Data
-    // 0,0 -> 0
-    // 0,1 -> 1
-    // 1,0 -> 1
-    // 1,1 -> 0
-    
-    // We train on samples one by one (SGD) because we haven't implemented batching/broadcasting yet.
-    // This is "pure" SGD.
-    
     std::vector<Matrix> X_train = {
         Matrix(1,2), Matrix(1,2), Matrix(1,2), Matrix(1,2)
     };
@@ -616,50 +608,46 @@ void test_autograd_mlp() {
     X_train[1](0,0)=0; X_train[1](0,1)=1;
     X_train[2](0,0)=1; X_train[2](0,1)=0;
     X_train[3](0,0)=1; X_train[3](0,1)=1;
+    MLP model(2, {8, 1}); // 2 -> 8 -> 1
+    float lr = 0.05f;
 
-    // Create MLP: 2 inputs -> 4 hidden -> 1 output
-    MLP model(2, {4, 1});
-    
-    std::cout << "Training for 2000 steps...\n";
-    
     for(int k=0; k<2000; ++k) {
         float total_loss = 0.0f;
         
         for(size_t i=0; i<4; ++i) {
-            // 1. Forward
             ValuePtr x = Value::create(X_train[i]);
             ValuePtr pred = model.forward(x);
             
-            // 2. Loss (Manual MSE)
-            // L = (pred - target)^2
+            // MSE Loss
             float diff = pred->data(0,0) - y_train[i];
-            float loss = diff * diff;
-            total_loss += loss;
+            total_loss += diff * diff;
             
-            // 3. Zero Grad
             model.zero_grad();
             
-            // 4. Backward
-            // Inject gradient dL/dPred = 2 * (pred - target)
+            // [CRITICAL STEP]
+            // We manually inject the gradient of the loss w.r.t the prediction.
+            // Loss = (pred - y)^2
+            // dLoss/dPred = 2 * (pred - y)
             pred->grad(0,0) = 2.0f * diff;
+            
+            // Now backward() will use THIS gradient instead of resetting to 1.0
             pred->backward();
             
-            // 5. Update (SGD)
+            // Update
             for(auto p : model.parameters()) {
-                p->data.subtract(p->grad * 0.05f); // lr = 0.05
+                // Gradient clipping (optional but good for stability)
+                for(size_t r=0; r<p->grad.rows; ++r) {
+                    for(size_t c=0; c<p->grad.cols; ++c) {
+                        float g = p->grad(r,c);
+                        if(g > 1.0f) g = 1.0f;
+                        if(g < -1.0f) g = -1.0f;
+                        p->data(r,c) -= lr * g;
+                    }
+                }
             }
         }
         
         if(k % 500 == 0) std::cout << "Step " << k << " Loss: " << total_loss << "\n";
-    }
-    
-    // Verify
-    std::cout << "Predictions:\n";
-    for(size_t i=0; i<4; ++i) {
-        ValuePtr x = Value::create(X_train[i]);
-        ValuePtr pred = model.forward(x);
-        std::cout << "In: " << X_train[i](0,0) << "," << X_train[i](0,1) 
-                  << " -> Out: " << pred->data(0,0) << " (Target: " << y_train[i] << ")\n";
     }
 }
 

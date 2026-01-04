@@ -10,13 +10,12 @@ void Module::zero_grad() {
 }
 
 Linear::Linear(int nin, int nout) {
-    // Kaiming Initialization (Scale by sqrt(2/nin))
+    // Kaiming Init
     float scale = std::sqrt(2.0f / nin);
     Matrix w_data = Matrix::random(nin, nout);
     w_data.scale(scale);
     
-    // Bias starts at 0
-    Matrix b_data(1, nout); // 1xN row vector
+    Matrix b_data(1, nout); // Bias 0
 
     W = Value::create(w_data);
     b = Value::create(b_data);
@@ -24,9 +23,6 @@ Linear::Linear(int nin, int nout) {
 
 ValuePtr Linear::forward(ValuePtr x) {
     // y = xW + b
-    // Note: Our 'add' doesn't support broadcasting yet, so 'b' must match rows.
-    // For now, let's assume batch_size=1 OR we manually broadcast in V2.
-    // Hack: We rely on the fact that if x is 1xNin, xW is 1xNout, so + b (1xNout) works.
     return (x * W) + b;
 }
 

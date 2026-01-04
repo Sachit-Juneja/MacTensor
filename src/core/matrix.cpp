@@ -207,51 +207,21 @@ Matrix& Matrix::scale(float scalar) {
 // operator overloads
 // these create copies cause sometimes we want A + B to be a new matrix
 Matrix Matrix::operator+(const Matrix& other) const {
-    Matrix result = *this; // [note]: if this is a view, result is a view too
-    
-    // if we are a view, we need a deep copy before modifying to avoid side effects
-    // but for now let's assume result follows copy-on-write or just standard copy
-    // actually, to be safe with shared_ptr, we should clone if we want a new matrix
-    if (!is_contiguous()) {
-        // force a deep copy into a new contiguous matrix
-        Matrix real_result(rows, cols);
-        for(size_t i=0; i<rows; ++i)
-            for(size_t j=0; j<cols; ++j)
-                real_result(i,j) = (*this)(i,j);
-        real_result.add(other);
-        return real_result;
-    }
-    
-    // if contiguous, standard copy is fine (but wait, copy ctor is shallow now!)
-    // we need to explicitly deep copy for operators
-    Matrix deep_copy(rows, cols);
-    for(size_t i=0; i<rows; ++i)
-         for(size_t j=0; j<cols; ++j)
-             deep_copy(i,j) = (*this)(i,j);
-             
-    deep_copy.add(other);     
-    return deep_copy;
+    Matrix result = this->clone(); // Deep copy first
+    result.add(other);             // Then modify the copy
+    return result;
 }
 
 Matrix Matrix::operator-(const Matrix& other) const {
-    // deep copy
-    Matrix deep_copy(rows, cols);
-    for(size_t i=0; i<rows; ++i)
-         for(size_t j=0; j<cols; ++j)
-             deep_copy(i,j) = (*this)(i,j);
-
-    deep_copy.subtract(other);
-    return deep_copy;
+    Matrix result = this->clone();
+    result.subtract(other);
+    return result;
 }
 
 Matrix Matrix::operator*(float scalar) const {
-    Matrix deep_copy(rows, cols);
-    for(size_t i=0; i<rows; ++i)
-         for(size_t j=0; j<cols; ++j)
-             deep_copy(i,j) = (*this)(i,j);
-             
-    deep_copy.scale(scalar);
-    return deep_copy;
+    Matrix result = this->clone();
+    result.scale(scalar);
+    return result;
 }
 
 // dot product
@@ -471,23 +441,20 @@ Matrix Matrix::inverse() const {
     return X;
 }
 
-// Deep copy helper
 Matrix Matrix::clone() const {
-    Matrix copy(rows, cols); // allocates new clean storage
+    Matrix copy(rows, cols); // New allocation
     
     if (is_contiguous()) {
-        // [FIX]: Copy from raw_data() (start of view), not data->begin() (start of storage)
-        // Also only copy rows*cols elements
+        // Fast copy
         std::copy(raw_data(), raw_data() + (rows * cols), copy.data->begin());
     } else {
-        // Fallback for strided views
+        // Slow copy for views
         for(size_t i=0; i<rows; ++i)
             for(size_t j=0; j<cols; ++j)
                 copy(i,j) = (*this)(i,j);
     }
     return copy;
 }
-
 // Solves A * X = B where A is Symmetric Positive Definite
 // Wraps LAPACK 'sposv'
 Matrix Matrix::solve_spd(const Matrix& B) const {

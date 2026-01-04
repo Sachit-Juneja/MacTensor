@@ -5,8 +5,6 @@ MLP::MLP(int nin, std::vector<int> nouts) {
     for(size_t i=0; i<nouts.size(); ++i) {
         layers.push_back(std::make_shared<Linear>(sz_in, nouts[i]));
         sz_in = nouts[i];
-        
-        // Add ReLU between layers, but not after the last one
         if(i != nouts.size() - 1) {
             layers.push_back(std::make_shared<ReLU>());
         }
