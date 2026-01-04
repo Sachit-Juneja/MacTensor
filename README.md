@@ -62,11 +62,11 @@ The library follows a strict three-layer hierarchical architecture. Each layer a
 - [x] **Clustering**
     - [x] K-Means: Lloyd's Algorithm implementation.
     - [x] K-Means++: Probabilistic seeding for faster convergence.
-- [ ] **Dimensionality Reduction**
-    - [ ] Principal Component Analysis (PCA) via Covariance Matrix decomposition.
-    - [ ] PCA via SVD (for numerical stability).
-- [ ] **Gaussian Mixture Models**
-    - [ ] Expectation-Maximization (EM) algorithm implementation.
+- [x] **Dimensionality Reduction**
+    - [x] Principal Component Analysis (PCA) via Covariance Matrix decomposition.
+    - [x] PCA via SVD (for numerical stability).
+- [x] **Gaussian Mixture Models**
+    - [x] Expectation-Maximization (EM) algorithm implementation.
 
 ### Phase IV: Deep Learning (Autograd & Neural Networks)
 *Differentiable programming on a dynamic graph.*
