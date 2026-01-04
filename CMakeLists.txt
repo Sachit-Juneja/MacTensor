@@ -30,6 +30,7 @@ set(SOURCES
     src/dl/engine.cpp
     src/dl/model.cpp
     src/dl/layers.cpp
+    src/dl/optimizers.cpp
 )
 
 # make the executable

@@ -99,5 +99,89 @@ ValuePtr Value::relu() {
     return out;
 }
 
+ValuePtr Value::sub(ValuePtr other) {
+    Matrix out_data = data - other->data;
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this(), other}, "-");
+    
+    out->_backward = [this, other, out]() {
+        this->grad.add(out->grad);
+        // d(A-B)/dB = -1
+        // We don't have a 'sub' or 'neg' for matrix in place yet, so scale -1 and add
+        Matrix neg_grad = out->grad * -1.0f; 
+        other->grad.add(neg_grad);
+    };
+    return out;
+}
+
+ValuePtr Value::mul(ValuePtr other) {
+    // Element-wise multiplication (Hadamard)
+    Matrix out_data = data.hadamard(other->data);
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this(), other}, "*");
+    
+    out->_backward = [this, other, out]() {
+        // d(A*B)/dA = B * dOut
+        this->grad.add(other->data.hadamard(out->grad));
+        other->grad.add(this->data.hadamard(out->grad));
+    };
+    return out;
+}
+
+ValuePtr Value::pow(float exponent) {
+    // x^n
+    Matrix out_data = data.apply([exponent](float x){ return std::pow(x, exponent); });
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "^" + std::to_string(exponent));
+    
+    out->_backward = [this, out, exponent]() {
+        // d(x^n)/dx = n * x^(n-1) * grad
+        Matrix local_grad = data.apply([exponent](float x){ 
+            return exponent * std::pow(x, exponent - 1.0f); 
+        });
+        this->grad.add(local_grad.hadamard(out->grad));
+    };
+    return out;
+}
+
+ValuePtr Value::exp() {
+    // e^x
+    Matrix out_data = data.apply([](float x){ return std::exp(x); });
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "exp");
+    
+    out->_backward = [this, out]() {
+        // d(e^x)/dx = e^x = out
+        this->grad.add(out->data.hadamard(out->grad));
+    };
+    return out;
+}
+
+ValuePtr Value::log() {
+    // ln(x)
+    Matrix out_data = data.apply([](float x){ return std::log(x + 1e-8f); }); // epsilon for stability
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "log");
+    
+    out->_backward = [this, out]() {
+        // d(ln x)/dx = 1/x
+        Matrix local_grad = data.apply([](float x){ return 1.0f / (x + 1e-8f); });
+        this->grad.add(local_grad.hadamard(out->grad));
+    };
+    return out;
+}
+
+ValuePtr Value::neg() {
+    Matrix out_data = data * -1.0f;
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "neg");
+    out->_backward = [this, out]() {
+        Matrix neg = out->grad * -1.0f;
+        this->grad.add(neg);
+    };
+    return out;
+}
+
+ValuePtr operator-(ValuePtr a, ValuePtr b) { return a->sub(b); }
+
+// Division is just A * (B^-1)
+ValuePtr operator/(ValuePtr a, ValuePtr b) { 
+    return a->mul(b->pow(-1.0f)); 
+}
+
 ValuePtr operator+(ValuePtr a, ValuePtr b) { return a->add(b); }
 ValuePtr operator*(ValuePtr a, ValuePtr b) { return a->matmul(b); }

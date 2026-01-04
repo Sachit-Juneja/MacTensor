@@ -35,10 +35,19 @@ struct Value : public std::enable_shared_from_this<Value> {
     ValuePtr add(ValuePtr other);
     ValuePtr matmul(ValuePtr other);
     ValuePtr relu();
+
+    ValuePtr sub(ValuePtr other);
+    ValuePtr mul(ValuePtr other); // Element-wise multiplication
+    ValuePtr pow(float exponent);
+    ValuePtr exp(); // e^x
+    ValuePtr log(); // ln(x)
+    ValuePtr neg(); // -x
 };
 
 // Operator Overloads for sugar (A + B)
 ValuePtr operator+(ValuePtr a, ValuePtr b);
 ValuePtr operator*(ValuePtr a, ValuePtr b); // Matrix Multiplication
+ValuePtr operator-(ValuePtr a, ValuePtr b);
+ValuePtr operator/(ValuePtr a, ValuePtr b); // a * b^-1
 
 #endif

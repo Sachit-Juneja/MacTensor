@@ -22,6 +22,9 @@ public:
     size_t stride_cols; // step to next col
 
     // constructors
+    public:
+    // Default constructor (required for std::map/std::vector)
+    Matrix();
     Matrix(size_t r, size_t c); 
     
     // [new]: internal constructor for creating views (e.g. transpose)

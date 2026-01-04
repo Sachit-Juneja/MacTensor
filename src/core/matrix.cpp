@@ -2,6 +2,11 @@
 #include <random>
 #include <iomanip>
 
+Matrix::Matrix() 
+    : rows(0), cols(0), offset(0), stride_rows(0), stride_cols(0) {
+    data = std::make_shared<std::vector<float>>();
+}
+
 // init with zeros
 Matrix::Matrix(size_t r, size_t c) 
     : rows(r), cols(c), offset(0), stride_rows(1), stride_cols(r) {

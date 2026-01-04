@@ -10,6 +10,7 @@
 #include "../include/ml/pca.h"
 #include "../include/ml/gmm.h"
 #include "../include/dl/model.h"
+#include "../include/dl/optimizers.h" 
 
 // helper to check if things are roughly equal
 bool close_enough(float a, float b) {
@@ -598,7 +599,9 @@ void test_gmm() {
 void test_autograd_mlp() {
     std::cout << "\n--- Testing Deep Learning (MLP on XOR) ---\n";
     
-    // XOR Data
+    // 1. XOR Data Setup
+    // Inputs: (0,0), (0,1), (1,0), (1,1)
+    // Targets: 0, 1, 1, 0
     std::vector<Matrix> X_train = {
         Matrix(1,2), Matrix(1,2), Matrix(1,2), Matrix(1,2)
     };
@@ -608,46 +611,90 @@ void test_autograd_mlp() {
     X_train[1](0,0)=0; X_train[1](0,1)=1;
     X_train[2](0,0)=1; X_train[2](0,1)=0;
     X_train[3](0,0)=1; X_train[3](0,1)=1;
-    MLP model(2, {8, 1}); // 2 -> 8 -> 1
-    float lr = 0.05f;
 
-    for(int k=0; k<2000; ++k) {
+    // 2. Model Initialization
+    // Architecture: 2 Inputs -> 8 Hidden Neurons -> 1 Output
+    // A slightly wider hidden layer (8) helps convergence on XOR.
+    MLP model(2, {8, 1});
+    
+    // Hyperparameters
+    float lr = 0.05f;
+    int epochs = 2000;
+
+    std::cout << "Training for " << epochs << " steps...\n";
+
+    // 3. Training Loop (SGD)
+    for(int k=0; k < epochs; ++k) {
         float total_loss = 0.0f;
         
         for(size_t i=0; i<4; ++i) {
+            // A. Forward Pass
+            // Convert raw Matrix to Value node for the graph
             ValuePtr x = Value::create(X_train[i]);
             ValuePtr pred = model.forward(x);
             
-            // MSE Loss
+            // B. Loss Calculation (MSE)
+            // Diff = (Predicted - Target)
             float diff = pred->data(0,0) - y_train[i];
             total_loss += diff * diff;
             
+            // C. Zero Gradients
+            // Always reset before calculating new gradients!
             model.zero_grad();
             
-            // [CRITICAL STEP]
-            // We manually inject the gradient of the loss w.r.t the prediction.
+            // D. Manual Gradient Injection
             // Loss = (pred - y)^2
             // dLoss/dPred = 2 * (pred - y)
+            // We inject this gradient directly into the output node.
             pred->grad(0,0) = 2.0f * diff;
             
-            // Now backward() will use THIS gradient instead of resetting to 1.0
+            // E. Backward Pass
+            // This propagates the injected gradient all the way back to the weights.
             pred->backward();
             
-            // Update
+            // F. Optimization Step (SGD)
             for(auto p : model.parameters()) {
-                // Gradient clipping (optional but good for stability)
+                // Gradient Clipping: Prevents exploding gradients which cause NaNs
+                // If gradient is too big, cap it at +/- 1.0
                 for(size_t r=0; r<p->grad.rows; ++r) {
                     for(size_t c=0; c<p->grad.cols; ++c) {
                         float g = p->grad(r,c);
                         if(g > 1.0f) g = 1.0f;
                         if(g < -1.0f) g = -1.0f;
+                        
+                        // w = w - lr * grad
                         p->data(r,c) -= lr * g;
                     }
                 }
             }
         }
         
-        if(k % 500 == 0) std::cout << "Step " << k << " Loss: " << total_loss << "\n";
+        // Print progress every 500 epochs
+        if(k % 500 == 0) {
+            std::cout << "Step " << k << " Loss: " << total_loss << "\n";
+        }
+    }
+    
+    // 4. Verification
+    std::cout << "Predictions:\n";
+    bool all_correct = true;
+    for(size_t i=0; i<4; ++i) {
+        ValuePtr x = Value::create(X_train[i]);
+        ValuePtr pred = model.forward(x);
+        float val = pred->data(0,0);
+        
+        std::cout << "In: " << X_train[i](0,0) << "," << X_train[i](0,1) 
+                  << " -> Out: " << val << " (Target: " << y_train[i] << ")\n";
+                  
+        // Simple threshold check for accuracy
+        if (std::abs(val - y_train[i]) > 0.1f) all_correct = false;
+    }
+
+    if (all_correct) {
+        std::cout << ">> [PASS] MLP successfully learned XOR.\n";
+    } else {
+        std::cerr << ">> [FAIL] MLP did not converge fully.\n";
+        exit(1);
     }
 }
 
