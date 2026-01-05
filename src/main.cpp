@@ -698,6 +698,37 @@ void test_autograd_mlp() {
     }
 }
 
+void test_dropout_tanh() {
+    std::cout << "\n--- Testing Tanh + Dropout ---\n";
+    
+    // Create a dummy input
+    Matrix X(1, 10);
+    for(int i=0; i<10; ++i) X(0,i) = 1.0f;
+    ValuePtr x = Value::create(X);
+    
+    // Chain: x -> Tanh -> Dropout
+    ValuePtr h = x->tanh();
+    
+    Dropout drop(0.5f);
+    ValuePtr out = drop.forward(h); // Should zero out ~50% of elements
+    
+    std::cout << "Input (1.0) -> Tanh (" << std::tanh(1.0f) << ") -> Dropout:\n";
+    out->data.print(); // Should see some zeros and some scaled values
+    
+    out->grad(0,0) = 1.0f; // Dummy gradient
+    out->backward();
+    
+    std::cout << "Gradient reached input:\n";
+    x->grad.print();
+    
+    // Simple check: if dropout worked, output should contain at least one 0
+    bool has_zero = false;
+    for(int i=0; i<10; ++i) if(out->data(0,i) == 0.0f) has_zero = true;
+    
+    if(has_zero) std::cout << ">> [PASS] Dropout is dropping neurons.\n";
+    else std::cout << ">> [WARN] Dropout didn't drop anything (unlikely but possible with small size).\n";
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -741,6 +772,7 @@ int main() {
     test_pca();
     test_gmm();
     test_autograd_mlp();
+    test_dropout_tanh();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;

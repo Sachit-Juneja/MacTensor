@@ -42,6 +42,10 @@ struct Value : public std::enable_shared_from_this<Value> {
     ValuePtr exp(); // e^x
     ValuePtr log(); // ln(x)
     ValuePtr neg(); // -x
+
+    
+    ValuePtr tanh();
+    ValuePtr sigmoid();
 };
 
 // Operator Overloads for sugar (A + B)

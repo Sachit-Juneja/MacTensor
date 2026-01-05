@@ -1,5 +1,6 @@
 #include "../../include/dl/layers.h"
 #include <cmath>
+#include <random>
 
 void Module::zero_grad() {
     for (auto p : parameters()) {
@@ -36,4 +37,30 @@ ValuePtr ReLU::forward(ValuePtr x) {
 
 std::vector<ValuePtr> ReLU::parameters() {
     return {};
+}
+
+Dropout::Dropout(float p) : p(p), training(true) {}
+
+ValuePtr Dropout::forward(ValuePtr x) {
+    if (!training) return x;
+    
+    float scale = 1.0f / (1.0f - p);
+    
+    Matrix mask_data(x->data.rows, x->data.cols);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::bernoulli_distribution d(1.0f - p); 
+    
+    for(size_t i=0; i<mask_data.rows; ++i) {
+        for(size_t j=0; j<mask_data.cols; ++j) {
+            mask_data(i,j) = d(gen) ? scale : 0.0f;
+        }
+    }
+    
+    ValuePtr mask = Value::create(mask_data);
+    return x->mul(mask);
+}
+
+std::vector<ValuePtr> Dropout::parameters() {
+    return {}; // No parameters to train in Dropout
 }

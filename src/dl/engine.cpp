@@ -185,3 +185,32 @@ ValuePtr operator/(ValuePtr a, ValuePtr b) {
 
 ValuePtr operator+(ValuePtr a, ValuePtr b) { return a->add(b); }
 ValuePtr operator*(ValuePtr a, ValuePtr b) { return a->matmul(b); }
+
+ValuePtr Value::tanh() {
+    // Forward: z = tanh(x)
+    Matrix out_data = data.apply([](float x){ return std::tanh(x); });
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "tanh");
+    
+    out->_backward = [this, out]() {
+        // d(tanh)/dx = 1 - tanh^2
+        // We can reuse 'out' since it holds tanh(x)
+        Matrix local_grad = out->data.apply([](float t){ return 1.0f - (t * t); });
+        this->grad.add(local_grad.hadamard(out->grad));
+    };
+    return out;
+}
+
+ValuePtr Value::sigmoid() {
+    // Forward: z = 1 / (1 + e^-x)
+    Matrix out_data = data.apply([](float x){ 
+        return 1.0f / (1.0f + std::exp(-x)); 
+    });
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "sigmoid");
+    
+    out->_backward = [this, out]() {
+        // d(sig)/dx = sig * (1 - sig)
+        Matrix local_grad = out->data.apply([](float s){ return s * (1.0f - s); });
+        this->grad.add(local_grad.hadamard(out->grad));
+    };
+    return out;
+}

@@ -29,4 +29,27 @@ public:
     std::vector<ValuePtr> parameters() override;
 };
 
+// [NEW] Dropout Layer
+// Randomly zeros out elements during training to prevent overfitting
+class Dropout : public Module {
+public:
+    float p; // Probability of dropping a neuron
+    bool training; // Only active during training
+    
+    Dropout(float p = 0.5f);
+    ValuePtr forward(ValuePtr x) override;
+    std::vector<ValuePtr> parameters() override;
+};
+
+// Wrappers for activations
+class Tanh : public Module {
+    ValuePtr forward(ValuePtr x) override { return x->tanh(); }
+    std::vector<ValuePtr> parameters() override { return {}; }
+};
+
+class Sigmoid : public Module {
+    ValuePtr forward(ValuePtr x) override { return x->sigmoid(); }
+    std::vector<ValuePtr> parameters() override { return {}; }
+};
+
 #endif
