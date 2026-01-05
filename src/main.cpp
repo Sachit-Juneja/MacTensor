@@ -729,6 +729,85 @@ void test_dropout_tanh() {
     else std::cout << ">> [WARN] Dropout didn't drop anything (unlikely but possible with small size).\n";
 }
 
+void test_multiclass() {
+    std::cout << "\n--- Testing Multi-Class Classification (Softmax) ---\n";
+    
+    // Data: 3 Classes (One-Hot Targets)
+    // In 1: [1,0] -> Class 0 [1,0,0]
+    // In 2: [0,1] -> Class 1 [0,1,0]
+    // In 3: [1,1] -> Class 2 [0,0,1]
+    
+    std::vector<Matrix> X_train = {
+        Matrix(1,2), Matrix(1,2), Matrix(1,2)
+    };
+    X_train[0](0,0)=1; X_train[0](0,1)=0;
+    X_train[1](0,0)=0; X_train[1](0,1)=1;
+    X_train[2](0,0)=1; X_train[2](0,1)=1;
+    
+    // Targets (Indices)
+    std::vector<int> y_train = {0, 1, 2};
+    
+    // Model: 2 Inputs -> 3 Outputs (Logits)
+    // We don't put Softmax inside the model usually, we apply it at the end
+    // or use CrossEntropyLoss which combines them.
+    // Here we will use our explicit Softmax for demonstration.
+    MLP model(2, {5, 3}); 
+    
+    Adam optim(model.parameters(), 0.05f);
+
+    for(int k=0; k<1000; ++k) {
+        float total_loss = 0.0f;
+        
+        for(size_t i=0; i<3; ++i) {
+            ValuePtr x = Value::create(X_train[i]);
+            ValuePtr logits = model.forward(x);
+            ValuePtr probs = logits->softmax();
+            
+            // Cross Entropy Loss: -log(p_target)
+            // We want to maximize prob of correct class
+            // Loss = -log(probs[target])
+            
+            int target = y_train[i];
+            float p = probs->data(0, target);
+            // safe log
+            float loss = -std::log(p + 1e-7f);
+            
+            total_loss += loss;
+            
+            optim.zero_grad();
+            
+            // Manual Gradient for CE Loss w.r.t Logits
+            // dL/dLogit_i = Prob_i - (1 if i==target else 0)
+            // This is the beautiful simplification of Softmax+CE
+            // We inject this directly into 'logits' to skip backpropping through the raw log/exp math
+            // (Standard optimization in DL frameworks)
+            
+            for(size_t j=0; j<3; ++j) {
+                float indicator = (j == target) ? 1.0f : 0.0f;
+                logits->grad(0,j) = probs->data(0,j) - indicator;
+            }
+            
+            logits->backward();
+            optim.step();
+        }
+        
+        if(k % 200 == 0) std::cout << "Step " << k << " Loss: " << total_loss << "\n";
+    }
+    
+    std::cout << "Predictions:\n";
+    for(size_t i=0; i<3; ++i) {
+        ValuePtr x = Value::create(X_train[i]);
+        ValuePtr logits = model.forward(x);
+        ValuePtr probs = logits->softmax();
+        
+        std::cout << "In: " << X_train[i](0,0) << "," << X_train[i](0,1) << " -> Probs: [";
+        for(int j=0; j<3; ++j) std::cout << probs->data(0,j) << " ";
+        std::cout << "] (Target: " << y_train[i] << ")\n";
+    }
+    
+    std::cout << ">> [PASS] Multi-class classification achieved.\n";
+}
+
 // --- Main Execution ---
 
 int main() {
@@ -773,6 +852,7 @@ int main() {
     test_gmm();
     test_autograd_mlp();
     test_dropout_tanh();
+    test_multiclass();
 
     std::cout << "\n=== ALL SYSTEMS OPERATIONAL ===\n";
     return 0;

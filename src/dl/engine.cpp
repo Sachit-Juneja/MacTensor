@@ -1,6 +1,7 @@
 #include "../../include/dl/engine.h"
 #include <iostream>
 #include <algorithm>
+#include <numeric>
 
 Value::Value(Matrix data, std::vector<ValuePtr> children, std::string op)
     : data(data), grad(data.rows, data.cols), children(children), op(op) {
@@ -212,5 +213,57 @@ ValuePtr Value::sigmoid() {
         Matrix local_grad = out->data.apply([](float s){ return s * (1.0f - s); });
         this->grad.add(local_grad.hadamard(out->grad));
     };
+    return out;
+}
+
+ValuePtr Value::softmax() {
+    // 1. Forward Pass
+    // We compute this row-wise (assuming x is 1xN or NxM)
+    // For simplicity in this engine, we assume x is a SINGLE ROW vector (1xN).
+    // (To support batches properly, we'd need a broadcasting engine, which is Phase V).
+    
+    // x_max for numerical stability (exp(x - max))
+    float max_val = -1e9f;
+    for(size_t i=0; i<data.cols; ++i) {
+        if(data(0,i) > max_val) max_val = data(0,i);
+    }
+    
+    Matrix out_data(data.rows, data.cols);
+    float sum_exp = 0.0f;
+    
+    // Compute exp(x - max)
+    for(size_t i=0; i<data.cols; ++i) {
+        float e = std::exp(data(0,i) - max_val);
+        out_data(0,i) = e;
+        sum_exp += e;
+    }
+    
+    // Normalize
+    for(size_t i=0; i<data.cols; ++i) {
+        out_data(0,i) /= sum_exp;
+    }
+    
+    ValuePtr out = std::make_shared<Value>(out_data, std::vector<ValuePtr>{shared_from_this()}, "softmax");
+    
+    // 2. Backward Pass
+    out->_backward = [this, out]() {
+        // Gradient of Softmax:
+        // dL/dx_i = S_i * (dL/dy_i - sum(S_k * dL/dy_k))
+        
+        // Compute dot product of (S . dL/dy)
+        float s_dot_grad = 0.0f;
+        for(size_t k=0; k<out->data.cols; ++k) {
+            s_dot_grad += out->data(0,k) * out->grad(0,k);
+        }
+        
+        for(size_t i=0; i<data.cols; ++i) {
+            float s = out->data(0,i);
+            float g = out->grad(0,i);
+            
+            // The formula simplifies nicely
+            this->grad(0,i) += s * (g - s_dot_grad);
+        }
+    };
+    
     return out;
 }
