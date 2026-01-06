@@ -104,7 +104,7 @@ $$\min_{\theta} \frac{1}{2m} || X\theta - y ||^2_2 + \lambda || \theta ||_p$$
 ### Compilation
 ```bash
 # 1. Clone
-git clone [https://github.com/Sachit-Juneja/MacTensor.git](https://github.com/Sachit-Juneja/MacTensor.git)
+git clone https://github.com/Sachit-Juneja/MacTensor.git
 cd MacTensor
 
 # 2. Build
